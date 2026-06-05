@@ -8,11 +8,11 @@
 
 ### Repo & Environment
 - ⬜ Initialize git repo and push to GitHub (public)
-- ⬜ Add all .md seed files (README, AGENTS, PLAN, TODO, ARCHITECTURE, CHALLENGES, CONTEXT, SECURITY, CONVENTIONS)
-- ⬜ Create `.gitignore` (Python, .env, Neo4j, IDE files)
-- ⬜ Create `.env.example` with all required variable names (no values)
-- ⬜ Create `requirements.txt` with pinned versions
-- ⬜ Create `src/` directory structure (empty `__init__.py` files)
+- ✅ Add all .md seed files (README, AGENTS, PLAN, TODO, ARCHITECTURE, CHALLENGES, CONTEXT, SECURITY, CONVENTIONS)
+- ✅ Create `.gitignore` (Python, .env, Neo4j, IDE files)
+- ✅ Create `.env.example` with all required variable names (no values)
+- ✅ Create `requirements.txt` with pinned versions
+- ✅ Create `src/` directory structure (empty `__init__.py` files)
 
 ### Azure Setup
 - ⬜ Create Azure resource group for the project
@@ -27,35 +27,39 @@
 - ⬜ Test connection with a simple Python script (not committed)
 
 ### PDF Ingestion
-- ⬜ Build `src/ingestion/pdf_parser.py`
-  - ⬜ Extract text per section (abstract, intro, methods, results, discussion)
-  - ⬜ Split into chunks (~500 tokens with overlap)
-  - ⬜ Return structured `PaperChunk` objects
-- ⬜ Build `src/ingestion/foundry_uploader.py`
-  - ⬜ Upload chunks to Foundry IQ knowledge base
-  - ⬜ Tag chunks with paper_id and section metadata
+- ✅ Build `src/ingestion/pdf_parser.py`
+  - ✅ Extract text per section (abstract, intro, methods, results, discussion)
+  - ✅ Split into chunks (~500 tokens with overlap)
+  - ✅ Return structured `PaperChunk` objects
+- ✅ Build `src/ingestion/foundry_uploader.py`
+  - ✅ Upload chunks to Foundry IQ knowledge base
+  - ✅ Tag chunks with paper_id and section metadata
 - ⬜ Test with 1 real PDF — verify chunks appear in Foundry IQ
+
+Status note 2026-06-05 23:44 +03:00: Local ingestion code is implemented and syntax-checked; real PDF/Foundry IQ verification is pending installed dependencies and Azure credentials.
 
 ---
 
 ## Day 2 — Extractor Agent
 
-- ⬜ Build `src/agents/base_agent.py` — shared base class
-  - ⬜ Logging, error handling, retry logic
-  - ⬜ Foundry IQ query wrapper
+- ✅ Build `src/agents/base_agent.py` — shared base class
+  - ✅ Logging, error handling, retry logic
+  - ✅ Foundry IQ query wrapper
 - ⬜ Build `src/agents/extractor.py`
   - ⬜ System prompt for claim extraction (strict JSON output)
   - ⬜ Iterate over paper chunks from Foundry IQ
   - ⬜ Parse and validate claim objects
   - ⬜ Assign claim types: finding / method / assumption / limitation
-- ⬜ Build `src/graph/schema.py`
-  - ⬜ Define `Claim`, `Paper`, `Concept`, `OpenQuestion`, `Edge` dataclasses
-  - ⬜ Neo4j constraint definitions
-- ⬜ Build `src/graph/graph_manager.py` (partial)
-  - ⬜ `add_paper(paper)`
-  - ⬜ `add_claim(claim)`
-  - ⬜ `get_claims_for_paper(paper_id)`
+- ✅ Build `src/graph/schema.py`
+  - ✅ Define `Claim`, `Paper`, `Concept`, `OpenQuestion`, `Edge` dataclasses
+  - ✅ Neo4j constraint definitions
+- ✅ Build `src/graph/graph_manager.py` (partial)
+  - ✅ `add_paper(paper)`
+  - ✅ `add_claim(claim)`
+  - ✅ `get_claims_for_paper(paper_id)`
 - ⬜ Test: run Extractor on 3 papers, verify claims in Neo4j
+
+Status note 2026-06-05 23:55 +03:00: Pulled forward from Day 2/4 — built schema.py (all dataclasses + Neo4j DDL), base_agent.py (OpenAI + Foundry IQ wrappers + retry logic), graph_manager.py (full Neo4j CRUD), and delta_emitter.py (WebSocket pub/sub). Extractor agent implementation is next.
 
 ---
 
@@ -86,10 +90,10 @@
   - ⬜ Dispatch Extractor → await → dispatch Comparator → await → dispatch Gap Finder
   - ⬜ Handle partial failures — log and continue
   - ⬜ Track pipeline status: QUEUED → EXTRACTING → COMPARING → GAP_FINDING → COMPLETE
-- ⬜ Build `src/graph/delta_emitter.py`
-  - ⬜ Event queue for graph changes
-  - ⬜ `emit(event_type, data)` method
-  - ⬜ Subscriber pattern for WebSocket connections
+- ✅ Build `src/graph/delta_emitter.py`
+  - ✅ Event queue for graph changes
+  - ✅ `emit(event_type, data)` method
+  - ✅ Subscriber pattern for WebSocket connections
 - ⬜ Integration test: full pipeline on 3 papers without UI
 
 ---
