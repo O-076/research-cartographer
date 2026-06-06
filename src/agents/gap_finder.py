@@ -9,9 +9,11 @@ Output: ``AsyncGenerator[OpenQuestion, None]``
 
 import logging
 import uuid
+import urllib.parse
 from collections.abc import AsyncGenerator
 from typing import Any
 
+import httpx
 from pydantic import BaseModel, Field
 
 from src.agents.base_agent import BaseAgent, LLMResponseError
@@ -156,12 +158,8 @@ class GapFinderAgent(BaseAgent):
                     )
                     continue
 
-                # MVP: mock novelty score (skip real Web IQ)
-                novelty = self._mock_novelty_score(gap.question)
-                web_evidence = (
-                    "[MVP mock] Web IQ search skipped. "
-                    f"Mock novelty score: {novelty:.2f}"
-                )
+                # Web Grounding: Semantic Scholar API for novelty score
+                novelty, web_evidence = await self._compute_novelty_score(gap.question)
 
                 if novelty < _MIN_NOVELTY_SCORE:
                     continue
@@ -220,14 +218,44 @@ class GapFinderAgent(BaseAgent):
         return prompt
 
     # ------------------------------------------------------------------
-    # Mock novelty scorer (MVP placeholder for Web IQ)
+    # Semantic Scholar novelty scorer (Web Grounding)
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _mock_novelty_score(question: str) -> float:
-        """Return a deterministic placeholder novelty score between 0.3 and 0.9.
-
-        In production this would be informed by Web IQ search results.
+    async def _compute_novelty_score(self, question: str) -> tuple[float, str]:
+        """Query Semantic Scholar to determine novelty of the research question.
+        
+        Returns a tuple of (novelty_score, web_evidence).
         """
+        query = urllib.parse.quote_plus(question)
+        url = f"https://api.semanticscholar.org/graph/v1/paper/search?query={query}&limit=5"
+        
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(url)
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    total_papers = data.get("total", 0)
+                    
+                    # More papers = lower novelty. 0 papers = max novelty.
+                    if total_papers == 0:
+                        novelty = 0.95
+                    elif total_papers < 10:
+                        novelty = 0.85 - (total_papers * 0.02)
+                    elif total_papers < 100:
+                        novelty = 0.65
+                    else:
+                        novelty = max(0.1, 0.5 - (total_papers / 1000.0))
+                        
+                    evidence = f"Semantic Scholar found {total_papers} related papers. Calculated novelty: {novelty:.2f}."
+                    return round(novelty, 2), evidence
+                else:
+                    logger.warning(f"Semantic Scholar API returned {response.status_code}")
+        except Exception as exc:
+            logger.error("Failed to query Semantic Scholar", extra={"error": str(exc)})
+            
+        # Fallback if API fails
         bucket = sum(ord(char) for char in question) % 61
-        return round(0.3 + bucket / 100, 2)
+        novelty = round(0.3 + bucket / 100, 2)
+        evidence = f"Web search failed. Deterministic fallback score: {novelty:.2f}."
+        return novelty, evidence

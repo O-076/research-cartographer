@@ -9,7 +9,7 @@
     const CONFIG = {
         api: {
             base: window.location.origin || "http://localhost:8000",
-            ws: `ws://${window.location.host || "localhost:8000"}/ws/graph`,
+            ws: `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host || "localhost:8000"}/ws/graph`,
             graphEndpoint: "/graph",
             uploadEndpoint: "/upload",
         },

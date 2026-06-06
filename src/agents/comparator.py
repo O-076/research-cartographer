@@ -200,7 +200,11 @@ class ComparatorAgent(BaseAgent):
                     continue
 
                 edge = Edge(
-                    id=str(uuid.uuid4()),
+                    id=_edge_id(
+                        item.source_claim_id,
+                        item.relationship,
+                        item.target_claim_id,
+                    ),
                     source_claim_id=item.source_claim_id,
                     target_claim_id=item.target_claim_id,
                     type=item.relationship,
@@ -283,3 +287,13 @@ def _claim_from_record(record: dict[str, Any]) -> Claim:
         embedding=record.get("embedding", []),
         source_chunk_text=record.get("source_chunk_text", ""),
     )
+
+
+def _edge_id(source_claim_id: str, relationship: str, target_claim_id: str) -> str:
+    """Return a stable ID for a typed claim relationship.
+
+    The comparator re-scores edges over time. Stable IDs let Neo4j MERGE and the
+    frontend emit edge_updated instead of creating duplicates on every pass.
+    """
+    key = f"research-cartographer:edge:{source_claim_id}:{relationship}:{target_claim_id}"
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, key))

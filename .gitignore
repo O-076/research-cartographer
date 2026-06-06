@@ -41,10 +41,10 @@ pip-wheel-metadata/
 *.ipynb
 
 # Virtual environments
-venv/
+venv*/
 env/
 ENV/
-.venv/
+.venv*/
 .env/
 pyenv/
 

@@ -161,7 +161,13 @@ class GraphManager:
         MATCH (tgt:Claim {{id: $tgt_id}})
         MERGE (src)-[r:{rel_type} {{id: $edge_id}}]->(tgt)
         ON CREATE SET r += $props, r._created = true
-        ON MATCH SET r += $props, r._created = false
+        ON MATCH SET
+            r.source_claim_id = $src_id,
+            r.target_claim_id = $tgt_id,
+            r.type = $edge_type,
+            r.strength = $strength,
+            r.reasoning = $reasoning,
+            r._created = false
         RETURN r._created AS created
         """
         props = edge_to_props(edge)
@@ -173,6 +179,9 @@ class GraphManager:
                     "tgt_id": edge.target_claim_id,
                     "edge_id": edge.id,
                     "props": props,
+                    "edge_type": edge.type,
+                    "strength": edge.strength,
+                    "reasoning": edge.reasoning,
                 },
             )
             record = await result.single()
@@ -196,16 +205,22 @@ class GraphManager:
 
         query = f"""
         MATCH (src:Claim {{id: $src_id}})-[r:{rel_type} {{id: $edge_id}}]->(tgt:Claim {{id: $tgt_id}})
-        SET r += $props
+        SET
+            r.source_claim_id = $src_id,
+            r.target_claim_id = $tgt_id,
+            r.type = $edge_type,
+            r.strength = $strength,
+            r.reasoning = $reasoning
         """
-        props = edge_to_props(edge)
         await self._write(
             query,
             {
                 "src_id": edge.source_claim_id,
                 "tgt_id": edge.target_claim_id,
                 "edge_id": edge.id,
-                "props": props,
+                "edge_type": edge.type,
+                "strength": edge.strength,
+                "reasoning": edge.reasoning,
             },
             "update_edge",
         )
