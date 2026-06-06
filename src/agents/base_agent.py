@@ -11,6 +11,7 @@ import asyncio
 import json
 import logging
 import os
+import re as _re
 from typing import Any, TypeVar
 
 import httpx
@@ -26,10 +27,13 @@ logger = logging.getLogger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
 
-DEFAULT_TIMEOUT_SECONDS = 60.0
+DEFAULT_TIMEOUT_SECONDS = 120.0
 MAX_RETRIES = 3
 BACKOFF_MIN_SECONDS = 1
 BACKOFF_MAX_SECONDS = 16
+
+# Reasoning models (o-series) do not support temperature or json_object mode
+_REASONING_MODEL_PATTERN = _re.compile(r"^o[1-9]", _re.I)
 
 
 # ---------------------------------------------------------------------------
@@ -127,26 +131,42 @@ class BaseAgent:
     ) -> str:
         """Send a chat completion request to Azure OpenAI.
 
+        Automatically adapts for reasoning models (o-series) which do not
+        support ``temperature`` or ``response_format``.
+
         Returns the raw text content of the first choice.
         """
+        is_reasoning = bool(_REASONING_MODEL_PATTERN.match(self._openai_deployment))
         system = system_prompt or self.SYSTEM_PROMPT
-        messages: list[dict[str, str]] = [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user_prompt},
-        ]
 
-        body: dict[str, Any] = {
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
-        if json_mode:
-            body["response_format"] = {"type": "json_object"}
+        # Reasoning models use "developer" role instead of "system"
+        if is_reasoning:
+            messages: list[dict[str, str]] = [
+                {"role": "developer", "content": system},
+                {"role": "user", "content": user_prompt},
+            ]
+        else:
+            messages = [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_prompt},
+            ]
+
+        body: dict[str, Any] = {"messages": messages}
+
+        if is_reasoning:
+            # o-series: no temperature, use max_completion_tokens
+            body["max_completion_tokens"] = max_tokens
+            # For JSON output, instruct via prompt instead of response_format
+        else:
+            body["temperature"] = temperature
+            body["max_tokens"] = max_tokens
+            if json_mode:
+                body["response_format"] = {"type": "json_object"}
 
         url = (
             f"{self._openai_endpoint}/openai/deployments/"
             f"{self._openai_deployment}/chat/completions"
-            "?api-version=2024-06-01"
+            "?api-version=2024-12-01-preview"
         )
         headers = {
             "api-key": self._openai_key,

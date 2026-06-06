@@ -45,11 +45,11 @@ Status note 2026-06-05 23:44 +03:00: Local ingestion code is implemented and syn
 - ✅ Build `src/agents/base_agent.py` — shared base class
   - ✅ Logging, error handling, retry logic
   - ✅ Foundry IQ query wrapper
-- ⬜ Build `src/agents/extractor.py`
-  - ⬜ System prompt for claim extraction (strict JSON output)
-  - ⬜ Iterate over paper chunks from Foundry IQ
-  - ⬜ Parse and validate claim objects
-  - ⬜ Assign claim types: finding / method / assumption / limitation
+- ✅ Build `src/agents/extractor.py`
+  - ✅ System prompt for claim extraction (strict JSON output)
+  - ✅ Iterate over paper chunks from Foundry IQ
+  - ✅ Parse and validate claim objects
+  - ✅ Assign claim types: finding / method / assumption / limitation
 - ✅ Build `src/graph/schema.py`
   - ✅ Define `Claim`, `Paper`, `Concept`, `OpenQuestion`, `Edge` dataclasses
   - ✅ Neo4j constraint definitions
@@ -61,24 +61,28 @@ Status note 2026-06-05 23:44 +03:00: Local ingestion code is implemented and syn
 
 Status note 2026-06-05 23:55 +03:00: Pulled forward from Day 2/4 — built schema.py (all dataclasses + Neo4j DDL), base_agent.py (OpenAI + Foundry IQ wrappers + retry logic), graph_manager.py (full Neo4j CRUD), and delta_emitter.py (WebSocket pub/sub). Extractor agent implementation is next.
 
+Status note 2026-06-06 10:00 +03:00: Extractor agent implementation is present with strict JSON prompting, Foundry IQ chunk retrieval, Pydantic validation, claim typing, and Azure OpenAI embeddings. Neo4j extraction test remains pending live credentials and test papers.
+
 ---
 
 ## Day 3 — Comparator Agent
 
-- ⬜ Build `src/agents/comparator.py`
-  - ⬜ Fetch all claim pairs to compare (new paper's claims vs. all existing)
-  - ⬜ System prompt for relationship classification (supports/contradicts/extends/replicates/refines)
-  - ⬜ Batch processing — don't compare every pair naively (use embedding similarity pre-filter)
-  - ⬜ Write typed edges with reasoning and strength score
-- ⬜ Extend `src/graph/graph_manager.py`
-  - ⬜ `add_edge(edge)`
-  - ⬜ `update_edge(edge)` — for re-scoring
-  - ⬜ `get_all_claims()`
-  - ⬜ `get_edges_for_claim(claim_id)`
-- ⬜ Build embedding pre-filter (cosine similarity threshold before LLM comparison)
-  - ⬜ Only send claim pairs with similarity > 0.6 to the LLM
-  - ⬜ This dramatically reduces API calls
+- ✅ Build `src/agents/comparator.py`
+  - ✅ Fetch all claim pairs to compare (new paper's claims vs. all existing)
+  - ✅ System prompt for relationship classification (supports/contradicts/extends/replicates/refines)
+  - ✅ Batch processing — don't compare every pair naively (use embedding similarity pre-filter)
+  - ✅ Write typed edges with reasoning and strength score
+- ✅ Extend `src/graph/graph_manager.py`
+  - ✅ `add_edge(edge)`
+  - ✅ `update_edge(edge)` — for re-scoring
+  - ✅ `get_all_claims()`
+  - ✅ `get_edges_for_claim(claim_id)`
+- ✅ Build embedding pre-filter (cosine similarity threshold before LLM comparison)
+  - ✅ Only send claim pairs with similarity > 0.6 to the LLM
+  - ✅ This dramatically reduces API calls
 - ⬜ Test: upload 2 papers that are known to agree/disagree — verify edges
+
+Status note 2026-06-06 10:00 +03:00: Comparator code is present with graph-backed claim fetching, strict JSON relationship classification, embedding pre-filtering at >0.60, 10-pair LLM batches, and a 500-call cap. Live two-paper Neo4j verification remains pending.
 
 ---
 
