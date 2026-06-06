@@ -1,63 +1,158 @@
 # Next Agent Prompt
 
-You are continuing Research Cartographer in `C:\Users\OMAR\Desktop\Microsoft Student Ambassador\Hackathon\research-cartographer`.
+You are continuing Research Cartographer in:
 
-Before editing, read these in order: `AGENTS.md`, `ARCHITECTURE.md`, `CHALLENGES.md`, `CONVENTIONS.md`, `SECURITY.md`, `PLAN.md`, `TODO.md`, and this file.
+`C:\Users\OMAR\Desktop\Microsoft Student Ambassador\Hackathon\research-cartographer`
 
-## Current State
+Read these first, in order:
 
-- Latest committed work:
-  - `686af3b feat(ingestion): add pdf parsing foundation`
-  - `8ba31cf feat(agents): add extractor and comparator agents`
-- Existing committed foundation includes graph schema/manager, delta emitter, base agent, ingestion, extractor, and comparator.
-- Current working tree still contains uncommitted WIP files:
-  - `src/agents/cartographer.py`
-  - `src/agents/gap_finder.py`
-  - `src/api/main.py`
-  - `src/api/models.py`
-  - `src/api/routes/upload.py`
-  - `src/api/routes/graph.py`
-  - `src/frontend/index.html`
-  - `src/frontend/graph.js`
-  - `src/frontend/styles.css`
-- `TODO.md` has been updated to reflect this accurately: Day 4 and Day 8 are in progress where A2A/Web IQ are incomplete; Day 5 and Day 6 code scaffolds exist but still need runtime/browser verification.
+1. `AGENTS.md`
+2. `ARCHITECTURE.md`
+3. `CHALLENGES.md`
+4. `CONVENTIONS.md`
+5. `SECURITY.md`
+6. `PLAN.md`
+7. `TODO.md`
+8. `README.md`
+9. `NEXT_AGENT_PROMPT.md`
 
-## Important Caveats
+## Current Committed State
 
-- Do not mark live tests complete unless you actually run them.
-- Do not stage `.env` or any secrets.
-- Do not change pinned versions in `requirements.txt`.
-- The current `CartographerAgent` is an async orchestrator, but true Microsoft Agent Framework A2A setup is still missing.
-- The current `GapFinderAgent` uses deterministic placeholder novelty scoring; Web IQ is not implemented.
-- `src/frontend/graph.js` must keep live delta restarts at `simulation.alpha(0.3).restart()`.
-- Comparator threshold must stay `>0.60` with 10-pair batches and a 500-call cap.
+Latest commit:
 
-## Recommended Next Work
+```text
+057004e feat(app): add async pipeline backend and live graph UI
+```
 
-1. Inspect the uncommitted Day 4-6 WIP files.
-2. Run `python -m compileall .\src`.
-3. Fix any runtime issues in Cartographer/API/frontend without broad refactors.
-4. Decide on A2A:
-   - Implement Microsoft Agent Framework A2A if feasible.
-   - If not feasible quickly, document the temporary async fallback clearly in `README.md` and `TODO.md`, per `CHALLENGES.md`.
-5. Commit in coherent slices:
-   - `feat(orchestrator): add cartographer pipeline orchestration`
-   - `feat(api): add graph streaming backend`
-   - `feat(frontend): add live d3 graph interface`
-6. Leave Gap Finder as in-progress until Web IQ novelty scoring is real or the placeholder is explicitly accepted for the demo.
+Committed implementation now includes:
 
-## Verification Checklist Before Any Commit
+- PDF parsing and Foundry IQ uploader scaffolding.
+- Graph schema, graph manager, and WebSocket delta emitter.
+- BaseAgent with Azure OpenAI/Foundry IQ wrappers.
+- Extractor and Comparator agents.
+- Async Cartographer pipeline fallback.
+- MVP Gap Finder placeholder with deterministic novelty scoring.
+- FastAPI backend routes for upload, graph snapshot, paper status, and WebSocket streaming.
+- D3.js v7 frontend with upload UI, live delta handlers, graph styling, and click-to-inspect side panel.
+- Updated `README.md` and `TODO.md` status/caveat tracking.
 
-- `python -m compileall .\src` passes.
-- Search for forbidden blocking calls: `rg -n "time\.sleep|requests|threading" .\src`
-- Search for obvious secrets in changed source.
-- Run `git diff --cached` before committing.
-- Update only the specific `TODO.md` lines that the commit truly completes.
-
-## Suggested Immediate Command Sequence
+Working tree should be clean when you start. Confirm with:
 
 ```powershell
 git status --short
+```
+
+## Remaining Caveats And Solutions
+
+### 1. Local dependencies are not installed
+
+Symptom: import smoke tests fail on modules such as `httpx`.
+
+Solution:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 python -m compileall .\src
-rg -n "time\.sleep|requests|threading" .\src
+python -c "import src.api.main; print('api import ok')"
+```
+
+If installation fails due to sandbox/network restrictions, request escalation for dependency installation.
+
+### 2. A2A is not implemented yet
+
+Current state: `CartographerAgent` is an async fallback orchestrator using direct sub-agent calls. This is acceptable as a temporary fallback per `CHALLENGES.md`, but the project target remains Microsoft Agent Framework 1.0 + A2A.
+
+Solution path:
+
+- Check Microsoft Agent Framework/A2A examples and the IQ Series repo.
+- Timebox the attempt.
+- If feasible, replace direct sub-agent calls in `cartographer.py` with A2A dispatch.
+- If not feasible quickly, keep async fallback and document it clearly in `README.md`, `TODO.md`, and submission notes.
+
+### 3. Web IQ novelty scoring is placeholder
+
+Current state: `GapFinderAgent` yields OpenQuestion nodes, but novelty is deterministic placeholder scoring.
+
+Solution path:
+
+- Add Web IQ client configuration via `.env` only.
+- Query Web IQ for each candidate question/concept pair.
+- Store concise `web_evidence` and compute novelty from result count/relevance.
+- Mark Day 8 complete only after this is real or explicitly accepted as demo scope.
+
+### 4. Live Neo4j/Foundry verification is pending
+
+Solution path:
+
+- Populate `.env` locally only.
+- Run the API app:
+
+```powershell
+uvicorn src.api.main:app --reload
+```
+
+- Verify `/graph` returns a snapshot.
+- Upload one real PDF and verify chunks, claims, and paper status.
+- Upload two related papers and verify Comparator edges.
+
+### 5. Browser/WebSocket QA is pending
+
+Solution path:
+
+- Open `http://localhost:8000`.
+- Confirm `/static/styles.css` and `/static/graph.js` load.
+- Confirm WebSocket connects to `/ws/graph`.
+- Upload a PDF and verify the frontend uses deltas after initial `/graph`.
+- Check `simulation.alpha(0.3).restart()` remains the live-update restart.
+- Capture screenshots for desktop and a narrow viewport.
+
+### 6. JS shell syntax check was blocked
+
+Current state: Windows shell denied `node.exe --check`.
+
+Solution path:
+
+- Prefer browser QA with devtools console if Node remains blocked.
+- If using Node is necessary, use an approved Node runtime or request permission through the proper tool path.
+
+## Next Recommended Task
+
+Start with environment/runtime validation, not new feature work:
+
+1. Install dependencies in `.venv`.
+2. Run import and compile checks.
+3. Start FastAPI.
+4. Use the browser to verify frontend asset loading and WebSocket connection.
+5. Only then move to A2A or Web IQ implementation.
+
+## Guardrails
+
+- Do not commit `.env`.
+- Do not hardcode secrets.
+- Do not change pinned versions in `requirements.txt`.
+- Do not mark live tests complete unless you actually ran them.
+- Keep Comparator threshold `>0.60`, batches of 10, and 500-call cap.
+- Keep D3 live update restart at `simulation.alpha(0.3).restart()`.
+
+## Commit Guidance
+
+If dependency/runtime validation fixes are needed, use:
+
+```bash
+git commit -m "fix(api): stabilize local runtime startup"
+```
+
+If A2A is implemented:
+
+```bash
+git commit -m "feat(orchestrator): add a2a agent dispatch"
+```
+
+If Web IQ scoring is implemented:
+
+```bash
+git commit -m "feat(gap-finder): add web iq novelty scoring"
 ```

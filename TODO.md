@@ -102,6 +102,8 @@ Status note 2026-06-06 10:00 +03:00: Comparator code is present with graph-backe
 
 Status note 2026-06-06 10:05 +03:00: `cartographer.py` exists as an async orchestrator with queue/state handling and direct sub-agent calls, but true Microsoft Agent Framework A2A setup is not implemented yet. Keep this as in progress until A2A is integrated or the fallback is explicitly documented.
 
+Resolution plan 2026-06-06 10:15 +03:00: Timebox A2A implementation against Microsoft Agent Framework examples. If A2A is still blocked, keep the committed async fallback and document the fallback explicitly in README/submission notes before moving to demo polish.
+
 ---
 
 ## Day 5 — FastAPI Backend + WebSocket
@@ -123,6 +125,8 @@ Status note 2026-06-06 10:05 +03:00: `cartographer.py` exists as an async orches
 - ⬜ Test WebSocket with `wscat` — verify events stream correctly
 
 Status note 2026-06-06 10:05 +03:00: FastAPI files exist with upload, graph snapshot, paper status, WebSocket subscription, CORS, lifespan initialization, and static frontend serving. Runtime/WebSocket testing is still pending local dependencies, Neo4j, and Azure credentials.
+
+Resolution plan 2026-06-06 10:15 +03:00: Create a local virtual environment, install pinned dependencies from `requirements.txt`, populate `.env` locally only, then run `uvicorn src.api.main:app --reload` and test `/graph`, `/paper/{paper_id}/status`, and `/ws/graph`.
 
 ---
 
@@ -151,6 +155,8 @@ Status note 2026-06-06 10:05 +03:00: FastAPI files exist with upload, graph snap
 
 Status note 2026-06-06 10:05 +03:00: Frontend files exist with D3 v7 graph rendering, upload UI, WebSocket delta handlers, click-to-inspect side panel, and live-update restart at `simulation.alpha(0.3).restart()`. Browser visual QA is still pending before treating this as polished.
 
+Resolution plan 2026-06-06 10:15 +03:00: Use the in-app browser or local browser against `http://localhost:8000`, verify static assets load from `/static`, upload a PDF, inspect WebSocket deltas, and capture desktop/mobile screenshots before marking visual QA complete.
+
 ---
 
 ## Day 7 — Integration + Live Demo Flow
@@ -165,6 +171,8 @@ Status note 2026-06-06 10:05 +03:00: Frontend files exist with D3 v7 graph rende
 - ⬜ Performance test: 10 papers, verify no UI freeze
 
 Status note 2026-06-06 10:05 +03:00: Frontend includes upload progress, toasts, legend, contradiction styling, and smooth D3 restart settings. End-to-end browser verification, edge re-evaluation proof, label overlap review, and performance testing are still pending.
+
+Resolution plan 2026-06-06 10:15 +03:00: After live credentials are available, run one PDF upload for smoke testing, then two related papers for edge re-evaluation, then a 10-paper stress pass for UI freeze checks.
 
 ---
 
@@ -181,6 +189,8 @@ Status note 2026-06-06 10:05 +03:00: Frontend includes upload progress, toasts, 
 - 🔄 Add "question resolves" animation when a new paper answers a gap
 
 Status note 2026-06-06 10:05 +03:00: `gap_finder.py` exists but is an MVP/mock implementation: it analyzes provided claims and yields `OpenQuestion` nodes, while Web IQ novelty scoring is still skipped and novelty uses deterministic placeholder scoring. Do not mark complete until Web IQ is real or the mock is explicitly accepted for demo scope.
+
+Resolution plan 2026-06-06 10:15 +03:00: Replace deterministic placeholder novelty with Web IQ evidence retrieval once core upload-to-graph flow is stable. Keep placeholder scoring only for offline demos and label it clearly.
 
 ### Demo Video
 - ⬜ Prepare 5 test papers from the same research domain (download real PDFs)

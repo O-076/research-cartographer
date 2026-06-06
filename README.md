@@ -3,14 +3,14 @@
 > An autonomous multi-agent system that ingests scientific papers and builds a **living, evolving knowledge graph** — revealing how ideas connect, where fields agree, where they conflict, and what questions nobody has asked yet.
 
 Built for the **[Microsoft Agents League Hackathon](https://aka.ms/agentsleague/aisf)** · June 4–14, 2026
-**Track:** Reasoning Agents | **IQ Layers:** Foundry IQ + Web IQ | **Protocol:** A2A
+**Track:** Reasoning Agents | **IQ Layers:** Foundry IQ + Web IQ | **Protocol Target:** A2A
 
 ---
 
 ## ✨ What It Does
 
 1. **Upload** 1–20 scientific papers (PDF)
-2. **Four specialized AI agents** coordinate autonomously via Microsoft's A2A protocol
+2. **Four specialized AI agents** coordinate through an async pipeline while A2A integration is finalized
 3. **Watch the knowledge graph grow in real-time** — nodes and edges animate as agents reason
 4. **Discover** semantic connections, contradiction clusters, and open research gaps
 
@@ -26,10 +26,21 @@ Built for the **[Microsoft Agents League Hackathon](https://aka.ms/agentsleague/
 
 As of **June 6, 2026**:
 
-- ✅ Committed foundation: seed docs, graph schema/manager, delta emitter, base agent, PDF parser, Foundry IQ uploader, Extractor, and Comparator.
-- 🔄 Working tree WIP: Cartographer async orchestrator, FastAPI routes, D3 frontend, and MVP Gap Finder exist but still need review, runtime testing, and focused commits.
+- ✅ Committed foundation: seed docs, graph schema/manager, delta emitter, base agent, PDF parser, Foundry IQ uploader, Extractor, Comparator, async Cartographer fallback, FastAPI backend, D3 frontend, and MVP Gap Finder placeholder.
+- ✅ Working tree status after `057004e`: clean.
 - ⬜ External setup pending: Azure resource group, Foundry IQ knowledge base, Azure OpenAI deployment, Neo4j AuraDB credentials, and real `.env` population.
 - ⬜ Critical feature gaps: true Microsoft Agent Framework A2A setup, live Foundry IQ/Neo4j verification, Web IQ novelty scoring, WebSocket/browser QA, and end-to-end demo testing.
+
+### Caveat Resolution Plan
+
+| Caveat | Solution |
+|--------|----------|
+| Local imports fail without dependencies | Create a virtual environment, install pinned `requirements.txt`, then run import and FastAPI smoke tests. |
+| A2A is not wired yet | Timebox Microsoft Agent Framework A2A research/implementation; if blocked, keep the async fallback and document it clearly before submission. |
+| Web IQ novelty scoring is placeholder | Replace deterministic mock scoring in `GapFinderAgent` with Web IQ search evidence and novelty scoring. |
+| Neo4j/Foundry tests are not run | Populate `.env` locally only, initialize Neo4j constraints, upload one real PDF, and verify chunks/claims/edges. |
+| Browser/WebSocket QA is pending | Run the FastAPI app locally, open `http://localhost:8000`, upload a PDF, and verify deltas animate without full graph re-fetches. |
+| JS syntax check via shell was blocked | Validate the frontend through the browser/devtools or an approved Node runtime once dependencies are installed. |
 
 ---
 
@@ -84,9 +95,9 @@ When you upload a new paper:
 | Layer | Technology |
 |-------|-----------|
 | Agent Framework | Microsoft Agent Framework 1.0 (GA, Build 2026) |
-| Agent Coordination | A2A Protocol |
+| Agent Coordination | Async fallback now; A2A Protocol target |
 | Knowledge Base | Azure AI Foundry IQ |
-| Web Grounding | Web IQ |
+| Web Grounding | Web IQ target; placeholder novelty scoring now |
 | Graph Database | Neo4j |
 | Backend | FastAPI + asyncio + WebSockets |
 | Frontend | D3.js v7 + custom CSS |
