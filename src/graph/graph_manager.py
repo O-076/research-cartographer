@@ -327,15 +327,23 @@ class GraphManager:
             {"label": record["label"], **dict(record["n"])}
             for record in node_records
         ]
-        edges = [
-            {
-                "source": record["source"],
-                "target": record["target"],
-                "rel_type": record["rel_type"],
-                **dict(record["props"]),
-            }
-            for record in edge_records
-        ]
+        edges: list[dict[str, Any]] = []
+        for record in edge_records:
+            props = dict(record["props"])
+            rel_type = record["rel_type"]
+            source = record["source"]
+            target = record["target"]
+            edge_id = props.get("id") or f"{source}:{rel_type}:{target}"
+            edges.append(
+                {
+                    "id": edge_id,
+                    "source": source,
+                    "target": target,
+                    "rel_type": rel_type,
+                    "type": props.get("type", rel_type.lower()),
+                    **props,
+                }
+            )
 
         return {"nodes": nodes, "edges": edges}
 

@@ -199,6 +199,9 @@ def edge_to_props(edge: Edge) -> dict:
     """Convert an Edge to a Neo4j relationship property map."""
     return {
         "id": edge.id,
+        "source_claim_id": edge.source_claim_id,
+        "target_claim_id": edge.target_claim_id,
+        "type": edge.type,
         "strength": edge.strength,
         "reasoning": edge.reasoning,
         "created_at": edge.created_at.isoformat(),

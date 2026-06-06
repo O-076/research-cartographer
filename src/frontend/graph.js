@@ -1,0 +1,1054 @@
+/* ============================================================
+   Research Cartographer — D3.js Force-Directed Graph + WebSocket
+   ============================================================ */
+
+(() => {
+    "use strict";
+
+    // ─── Configuration ───
+    const CONFIG = {
+        api: {
+            base: window.location.origin || "http://localhost:8000",
+            ws: `ws://${window.location.host || "localhost:8000"}/ws/graph`,
+            graphEndpoint: "/graph",
+            uploadEndpoint: "/upload",
+        },
+        ws: {
+            reconnectDelay: 2000,
+            maxReconnectDelay: 30000,
+            reconnectBackoff: 1.5,
+        },
+        graph: {
+            // Force simulation
+            chargeStrength: -220,
+            linkDistance: 90,
+            centerStrength: 0.04,
+            collisionRadius: 30,
+            alphaDecay: 0.05,
+            velocityDecay: 0.35,
+
+            // Node sizing
+            minNodeRadius: 6,
+            maxNodeRadius: 28,
+            labelOffset: 6,
+
+            // Edge sizing
+            minEdgeWidth: 1,
+            maxEdgeWidth: 6,
+        },
+        colors: {
+            paper: "#4a9eff",
+            finding: "#00ff88",
+            method: "#ffd700",
+            assumption: "#ffd700",
+            limitation: "#ff8c42",
+            contradiction: "#ff4444",
+            question: "#ffffff",
+            concept: "#9b59b6",
+            // Edges
+            supports: "#00ff88",
+            contradicts: "#ff4444",
+            extends: "#4a9eff",
+            replicates: "#6b7280",
+            refines: "#6b7280",
+        },
+    };
+
+    // ─── State ───
+    const state = {
+        nodes: new Map(),       // id → node data
+        edges: new Map(),       // id → edge data
+        simulation: null,
+        svg: null,
+        g: null,                // main group (zoom/pan target)
+        edgeGroup: null,
+        nodeGroup: null,
+        zoom: null,
+        ws: null,
+        wsReconnectTimer: null,
+        wsReconnectDelay: CONFIG.ws.reconnectDelay,
+        selectedNodeId: null,
+        tooltip: null,
+    };
+
+    // ─── DOM Refs ───
+    const dom = {};
+
+    // ─── Initialize ───
+    function init() {
+        cacheDom();
+        createTooltip();
+        initSvg();
+        initSimulation();
+        initZoom();
+        bindUpload();
+        bindPanelClose();
+        bindZoomControls();
+
+        // Fetch initial graph then connect WS
+        fetchInitialGraph().then(() => {
+            connectWebSocket();
+        });
+    }
+
+    function cacheDom() {
+        dom.svg = document.getElementById("graph-svg");
+        dom.emptyState = document.getElementById("empty-state");
+        dom.pipelineStatus = document.getElementById("pipeline-status");
+        dom.wsIndicator = document.getElementById("ws-indicator");
+        dom.wsLabel = dom.wsIndicator.querySelector(".ws-label");
+        dom.statusDot = dom.pipelineStatus.querySelector(".status-dot");
+        dom.statusLabel = dom.pipelineStatus.querySelector(".status-label");
+        dom.detailPanel = document.getElementById("detail-panel");
+        dom.panelTitle = document.getElementById("panel-title");
+        dom.panelBody = document.getElementById("panel-body");
+        dom.panelClose = document.getElementById("panel-close");
+        dom.uploadDropzone = document.getElementById("upload-dropzone");
+        dom.fileInput = document.getElementById("file-input");
+        dom.uploadProgress = document.getElementById("upload-progress");
+        dom.progressFill = document.getElementById("progress-fill");
+        dom.uploadStatusText = document.getElementById("upload-status-text");
+        dom.uploadContent = dom.uploadDropzone.querySelector(".upload-content");
+        dom.toastContainer = document.getElementById("toast-container");
+        // Stats
+        dom.statPapers = document.getElementById("stat-papers");
+        dom.statClaims = document.getElementById("stat-claims");
+        dom.statEdges = document.getElementById("stat-edges");
+        dom.statQuestions = document.getElementById("stat-questions");
+    }
+
+    // ─── Tooltip ───
+    function createTooltip() {
+        state.tooltip = document.createElement("div");
+        state.tooltip.className = "graph-tooltip";
+        document.body.appendChild(state.tooltip);
+    }
+
+    function showTooltip(text, x, y) {
+        state.tooltip.textContent = text;
+        state.tooltip.style.left = `${x + 14}px`;
+        state.tooltip.style.top = `${y - 10}px`;
+        state.tooltip.classList.add("visible");
+    }
+
+    function hideTooltip() {
+        state.tooltip.classList.remove("visible");
+    }
+
+    // ─── SVG Setup ───
+    function initSvg() {
+        const svg = d3.select(dom.svg);
+        state.svg = svg;
+
+        // Defs for glow filters and arrowheads
+        const defs = svg.append("defs");
+
+        // Glow filter for nodes
+        const glowFilter = defs.append("filter")
+            .attr("id", "node-glow")
+            .attr("x", "-50%").attr("y", "-50%")
+            .attr("width", "200%").attr("height", "200%");
+        glowFilter.append("feGaussianBlur")
+            .attr("stdDeviation", "4")
+            .attr("result", "coloredBlur");
+        const feMerge = glowFilter.append("feMerge");
+        feMerge.append("feMergeNode").attr("in", "coloredBlur");
+        feMerge.append("feMergeNode").attr("in", "SourceGraphic");
+
+        // Strong glow for questions
+        const strongGlow = defs.append("filter")
+            .attr("id", "question-glow")
+            .attr("x", "-80%").attr("y", "-80%")
+            .attr("width", "260%").attr("height", "260%");
+        strongGlow.append("feGaussianBlur")
+            .attr("stdDeviation", "8")
+            .attr("result", "coloredBlur");
+        const feMerge2 = strongGlow.append("feMerge");
+        feMerge2.append("feMergeNode").attr("in", "coloredBlur");
+        feMerge2.append("feMergeNode").attr("in", "SourceGraphic");
+
+        // Contradiction pulse filter
+        const pulseGlow = defs.append("filter")
+            .attr("id", "contradiction-glow")
+            .attr("x", "-100%").attr("y", "-100%")
+            .attr("width", "300%").attr("height", "300%");
+        pulseGlow.append("feGaussianBlur")
+            .attr("stdDeviation", "6")
+            .attr("result", "coloredBlur");
+        const feMerge3 = pulseGlow.append("feMerge");
+        feMerge3.append("feMergeNode").attr("in", "coloredBlur");
+        feMerge3.append("feMergeNode").attr("in", "SourceGraphic");
+
+        // Arrow markers for each edge type
+        const arrowTypes = [
+            { id: "arrow-supports", color: CONFIG.colors.supports },
+            { id: "arrow-contradicts", color: CONFIG.colors.contradicts },
+            { id: "arrow-extends", color: CONFIG.colors.extends },
+            { id: "arrow-replicates", color: CONFIG.colors.replicates },
+            { id: "arrow-refines", color: CONFIG.colors.refines },
+        ];
+
+        arrowTypes.forEach(({ id, color }) => {
+            defs.append("marker")
+                .attr("id", id)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 20)
+                .attr("refY", 0)
+                .attr("markerWidth", 6)
+                .attr("markerHeight", 6)
+                .attr("orient", "auto")
+                .append("path")
+                .attr("d", "M0,-4L10,0L0,4")
+                .attr("fill", color)
+                .attr("opacity", 0.6);
+        });
+
+        // Main group for zoom/pan
+        state.g = svg.append("g").attr("class", "graph-root");
+        state.edgeGroup = state.g.append("g").attr("class", "edges-layer");
+        state.nodeGroup = state.g.append("g").attr("class", "nodes-layer");
+    }
+
+    // ─── Force Simulation ───
+    function initSimulation() {
+        const width = dom.svg.clientWidth;
+        const height = dom.svg.clientHeight;
+
+        state.simulation = d3.forceSimulation()
+            .force("link", d3.forceLink()
+                .id(d => d.id)
+                .distance(CONFIG.graph.linkDistance)
+            )
+            .force("charge", d3.forceManyBody()
+                .strength(CONFIG.graph.chargeStrength)
+            )
+            .force("center", d3.forceCenter(width / 2, height / 2)
+                .strength(CONFIG.graph.centerStrength)
+            )
+            .force("collision", d3.forceCollide()
+                .radius(d => nodeRadius(d) + 4)
+            )
+            .alphaDecay(CONFIG.graph.alphaDecay)
+            .velocityDecay(CONFIG.graph.velocityDecay)
+            .on("tick", ticked);
+    }
+
+    // ─── Zoom / Pan ───
+    function initZoom() {
+        state.zoom = d3.zoom()
+            .scaleExtent([0.1, 6])
+            .on("zoom", (event) => {
+                state.g.attr("transform", event.transform);
+            });
+
+        state.svg.call(state.zoom);
+    }
+
+    function bindZoomControls() {
+        document.getElementById("zoom-in").addEventListener("click", () => {
+            state.svg.transition().duration(300).call(state.zoom.scaleBy, 1.4);
+        });
+        document.getElementById("zoom-out").addEventListener("click", () => {
+            state.svg.transition().duration(300).call(state.zoom.scaleBy, 0.7);
+        });
+        document.getElementById("zoom-reset").addEventListener("click", () => {
+            state.svg.transition().duration(500).call(
+                state.zoom.transform,
+                d3.zoomIdentity.translate(dom.svg.clientWidth / 2, dom.svg.clientHeight / 2).scale(0.8).translate(-dom.svg.clientWidth / 2, -dom.svg.clientHeight / 2)
+            );
+        });
+    }
+
+    // ─── Node Helpers ───
+    function getNodeColor(node) {
+        if (node.label === "OpenQuestion") return CONFIG.colors.question;
+        if (node.label === "Paper") return CONFIG.colors.paper;
+        if (node.label === "Concept") return CONFIG.colors.concept;
+        if (node.label === "Claim") {
+            // Check for contradiction involvement
+            if (node._hasContradiction) return CONFIG.colors.contradiction;
+            const type = (node.type || "finding").toLowerCase();
+            if (type === "finding" || type === "result") return CONFIG.colors.finding;
+            if (type === "method") return CONFIG.colors.method;
+            if (type === "assumption") return CONFIG.colors.assumption;
+            if (type === "limitation") return CONFIG.colors.limitation;
+            return CONFIG.colors.finding;
+        }
+        return CONFIG.colors.paper;
+    }
+
+    function nodeRadius(node) {
+        const conns = node._connectionCount || 1;
+        const r = CONFIG.graph.minNodeRadius + Math.sqrt(conns) * 3.5;
+        return Math.min(r, CONFIG.graph.maxNodeRadius);
+    }
+
+    function getNodeLabel(node) {
+        if (node.label === "Paper") return node.title ? truncate(node.title, 24) : "Paper";
+        if (node.label === "Claim") return truncate(node.text || "Claim", 20);
+        if (node.label === "Concept") return node.name || "Concept";
+        if (node.label === "OpenQuestion") return truncate(node.question || "Question", 20);
+        return node.id.slice(0, 8);
+    }
+
+    function truncate(str, len) {
+        if (!str) return "";
+        return str.length > len ? str.slice(0, len) + "…" : str;
+    }
+
+    // ─── Edge Helpers ───
+    function getEdgeColor(edge) {
+        const type = (edge.type || "supports").toLowerCase();
+        return CONFIG.colors[type] || CONFIG.colors.replicates;
+    }
+
+    function getEdgeClass(edge) {
+        return (edge.type || "supports").toLowerCase();
+    }
+
+    function edgeWidth(edge) {
+        const s = edge.strength || 0.5;
+        return CONFIG.graph.minEdgeWidth + s * (CONFIG.graph.maxEdgeWidth - CONFIG.graph.minEdgeWidth);
+    }
+
+    // ─── Compute Derived Fields ───
+    function recomputeDerivedFields() {
+        // Reset connection counts
+        state.nodes.forEach(n => {
+            n._connectionCount = 0;
+            n._hasContradiction = false;
+        });
+
+        state.edges.forEach(e => {
+            const src = state.nodes.get(e.source_claim_id || e.source?.id || e.source);
+            const tgt = state.nodes.get(e.target_claim_id || e.target?.id || e.target);
+            if (src) src._connectionCount = (src._connectionCount || 0) + 1;
+            if (tgt) tgt._connectionCount = (tgt._connectionCount || 0) + 1;
+            if (e.type === "contradicts") {
+                if (src) src._hasContradiction = true;
+                if (tgt) tgt._hasContradiction = true;
+            }
+        });
+    }
+
+    // ─── Render Graph ───
+    function render(animate = false) {
+        recomputeDerivedFields();
+        updateEmptyState();
+        updateStats();
+
+        const nodesArr = Array.from(state.nodes.values());
+        const edgesArr = Array.from(state.edges.values()).map(e => ({
+            ...e,
+            source: e.source_claim_id || e.source,
+            target: e.target_claim_id || e.target,
+        })).filter(e => state.nodes.has(typeof e.source === 'object' ? e.source.id : e.source) &&
+                         state.nodes.has(typeof e.target === 'object' ? e.target.id : e.target));
+
+        // ── Edges ──
+        const edgeSel = state.edgeGroup
+            .selectAll(".edge-line")
+            .data(edgesArr, d => d.id);
+
+        edgeSel.exit().transition().duration(300).style("stroke-opacity", 0).remove();
+
+        const edgeEnter = edgeSel.enter()
+            .append("line")
+            .attr("class", d => `edge-line ${getEdgeClass(d)}${animate ? " edge-enter" : ""}`)
+            .attr("stroke", d => getEdgeColor(d))
+            .attr("stroke-width", d => edgeWidth(d))
+            .attr("stroke-opacity", 0.45)
+            .attr("marker-end", d => `url(#arrow-${getEdgeClass(d)})`);
+
+        const edgeMerge = edgeEnter.merge(edgeSel);
+
+        edgeMerge
+            .attr("stroke", d => getEdgeColor(d))
+            .attr("stroke-width", d => edgeWidth(d));
+
+        // ── Nodes ──
+        const nodeSel = state.nodeGroup
+            .selectAll(".node-group")
+            .data(nodesArr, d => d.id);
+
+        nodeSel.exit().transition().duration(300).style("opacity", 0).remove();
+
+        const nodeEnter = nodeSel.enter()
+            .append("g")
+            .attr("class", d => `node-group${animate ? " node-enter" : ""}`)
+            .call(drag(state.simulation));
+
+        // Outer glow circle
+        nodeEnter.append("circle")
+            .attr("class", d => {
+                if (d.label === "OpenQuestion") return "node-glow question-glow";
+                return "node-glow";
+            })
+            .attr("r", d => nodeRadius(d) + 8)
+            .attr("fill", d => getNodeColor(d))
+            .attr("opacity", d => d.label === "OpenQuestion" ? 0.25 : 0.15)
+            .attr("filter", d => d.label === "OpenQuestion" ? "url(#question-glow)" : null);
+
+        // Contradiction halo
+        nodeEnter.append("circle")
+            .attr("class", d => `contradiction-halo${d._hasContradiction ? " active" : ""}`)
+            .attr("r", d => nodeRadius(d) + 14)
+            .attr("stroke", CONFIG.colors.contradiction)
+            .attr("stroke-width", 2)
+            .attr("fill", "none")
+            .attr("filter", "url(#contradiction-glow)");
+
+        // Main circle
+        nodeEnter.append("circle")
+            .attr("class", "node-circle")
+            .attr("r", d => nodeRadius(d))
+            .attr("fill", d => getNodeColor(d))
+            .attr("stroke", d => d3.color(getNodeColor(d)).brighter(0.5))
+            .attr("stroke-width", 1.5)
+            .attr("filter", "url(#node-glow)");
+
+        // Glow burst for new nodes
+        if (animate) {
+            nodeEnter.append("circle")
+                .attr("class", "glow-burst")
+                .attr("r", 5)
+                .attr("fill", d => getNodeColor(d))
+                .attr("opacity", 0.7);
+        }
+
+        // Label
+        nodeEnter.append("text")
+            .attr("class", "node-label")
+            .attr("dy", d => nodeRadius(d) + CONFIG.graph.labelOffset + 12)
+            .text(d => getNodeLabel(d));
+
+        // Interactions
+        nodeEnter
+            .on("click", (event, d) => {
+                event.stopPropagation();
+                openDetailPanel(d);
+            })
+            .on("mouseenter", (event, d) => {
+                const label = d.label === "Claim" ? (d.text || "Claim")
+                    : d.label === "Paper" ? (d.title || "Paper")
+                    : d.label === "Concept" ? (d.name || "Concept")
+                    : d.label === "OpenQuestion" ? (d.question || "Question")
+                    : d.id;
+                showTooltip(truncate(label, 80), event.clientX, event.clientY);
+            })
+            .on("mousemove", (event) => {
+                state.tooltip.style.left = `${event.clientX + 14}px`;
+                state.tooltip.style.top = `${event.clientY - 10}px`;
+            })
+            .on("mouseleave", () => hideTooltip());
+
+        const nodeMerge = nodeEnter.merge(nodeSel);
+
+        // Update existing nodes
+        nodeMerge.select(".node-circle")
+            .transition().duration(400)
+            .attr("r", d => nodeRadius(d))
+            .attr("fill", d => getNodeColor(d))
+            .attr("stroke", d => d3.color(getNodeColor(d)).brighter(0.5));
+
+        nodeMerge.select(".node-glow")
+            .transition().duration(400)
+            .attr("r", d => nodeRadius(d) + 8)
+            .attr("fill", d => getNodeColor(d));
+
+        nodeMerge.select(".contradiction-halo")
+            .classed("active", d => d._hasContradiction)
+            .transition().duration(400)
+            .attr("r", d => nodeRadius(d) + 14);
+
+        nodeMerge.select(".node-label")
+            .text(d => getNodeLabel(d))
+            .transition().duration(400)
+            .attr("dy", d => nodeRadius(d) + CONFIG.graph.labelOffset + 12);
+
+        // Update simulation
+        state.simulation.nodes(nodesArr);
+        state.simulation.force("link").links(edgesArr);
+        state.simulation.alpha(0.3).restart();
+    }
+
+    // ─── Tick ───
+    function ticked() {
+        state.edgeGroup.selectAll(".edge-line")
+            .attr("x1", d => d.source.x)
+            .attr("y1", d => d.source.y)
+            .attr("x2", d => d.target.x)
+            .attr("y2", d => d.target.y);
+
+        state.nodeGroup.selectAll(".node-group")
+            .attr("transform", d => `translate(${d.x},${d.y})`);
+    }
+
+    // ─── Drag ───
+    function drag(simulation) {
+        return d3.drag()
+            .on("start", (event, d) => {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            })
+            .on("drag", (event, d) => {
+                d.fx = event.x;
+                d.fy = event.y;
+            })
+            .on("end", (event, d) => {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            });
+    }
+
+    // ─── Empty State / Stats ───
+    function updateEmptyState() {
+        if (state.nodes.size > 0) {
+            dom.emptyState.classList.add("hidden");
+        } else {
+            dom.emptyState.classList.remove("hidden");
+        }
+    }
+
+    function updateStats() {
+        let papers = 0, claims = 0, questions = 0;
+        state.nodes.forEach(n => {
+            if (n.label === "Paper") papers++;
+            else if (n.label === "Claim") claims++;
+            else if (n.label === "OpenQuestion") questions++;
+        });
+        dom.statPapers.textContent = papers;
+        dom.statClaims.textContent = claims;
+        dom.statEdges.textContent = state.edges.size;
+        dom.statQuestions.textContent = questions;
+    }
+
+    // ─── Detail Panel ───
+    function openDetailPanel(node) {
+        state.selectedNodeId = node.id;
+        dom.detailPanel.classList.add("open");
+
+        const color = getNodeColor(node);
+        let html = "";
+
+        if (node.label === "Paper") {
+            dom.panelTitle.textContent = "📄 Paper";
+            html += badge("Paper", "paper");
+            if (node.status) html += badge(node.status, statusBadgeClass(node.status));
+            html += section("Title", `<p class="panel-text"><strong>${esc(node.title || "Untitled")}</strong></p>`);
+            if (node.authors && node.authors.length) {
+                html += section("Authors", `<p class="panel-text">${esc(node.authors.join(", "))}</p>`);
+            }
+            if (node.year) {
+                html += section("Year", `<p class="panel-text">${node.year}</p>`);
+            }
+            if (node.abstract) {
+                html += section("Abstract", `<p class="panel-text">${esc(node.abstract)}</p>`);
+            }
+        } else if (node.label === "Claim") {
+            dom.panelTitle.textContent = "💡 Claim";
+            html += badge(node.type || "finding", `type-${(node.type || "finding").toLowerCase()}`);
+            if (node.section) html += badge(node.section, "type-paper");
+            html += section("Claim", `<p class="panel-text">${esc(node.text || "")}</p>`);
+            if (node.confidence !== undefined) {
+                const pct = Math.round(node.confidence * 100);
+                const barColor = node.confidence > 0.7 ? CONFIG.colors.finding
+                    : node.confidence > 0.4 ? CONFIG.colors.method
+                    : CONFIG.colors.contradiction;
+                html += section("Confidence", `
+                    <div class="confidence-meter">
+                        <div class="confidence-bar-bg">
+                            <div class="confidence-bar-fill" style="width:${pct}%;background:${barColor}"></div>
+                        </div>
+                        <span class="confidence-value">${pct}%</span>
+                    </div>
+                `);
+            }
+            if (node.source_chunk_text) {
+                html += section("Source Text", `<p class="panel-text" style="font-style:italic;opacity:0.8">"${esc(node.source_chunk_text)}"</p>`);
+            }
+        } else if (node.label === "OpenQuestion") {
+            dom.panelTitle.textContent = "❓ Open Question";
+            html += badge("Question", "type-question");
+            if (node.status) html += badge(node.status, "type-paper");
+            html += section("Question", `<p class="panel-text"><strong>${esc(node.question || "")}</strong></p>`);
+            if (node.novelty_score !== undefined) {
+                const pct = Math.round(node.novelty_score * 100);
+                html += section("Novelty Score", `
+                    <div class="confidence-meter">
+                        <div class="confidence-bar-bg">
+                            <div class="confidence-bar-fill" style="width:${pct}%;background:${CONFIG.colors.question}"></div>
+                        </div>
+                        <span class="confidence-value">${pct}%</span>
+                    </div>
+                `);
+            }
+            if (node.web_evidence) {
+                html += section("Web Evidence", `<p class="panel-text">${esc(node.web_evidence)}</p>`);
+            }
+        } else if (node.label === "Concept") {
+            dom.panelTitle.textContent = "🔮 Concept";
+            html += badge("Concept", "type-concept");
+            html += section("Name", `<p class="panel-text"><strong>${esc(node.name || "")}</strong></p>`);
+        }
+
+        // Show connected edges
+        const connections = getConnections(node.id);
+        if (connections.length > 0) {
+            let connHtml = "";
+            connections.forEach(conn => {
+                const otherNode = state.nodes.get(conn.otherId);
+                const typeColor = CONFIG.colors[conn.edgeType] || CONFIG.colors.replicates;
+                const label = otherNode ? getNodeLabel(otherNode) : conn.otherId.slice(0, 8);
+                connHtml += `
+                    <div class="connection-item" data-node-id="${conn.otherId}">
+                        <span class="connection-dot" style="background:${otherNode ? getNodeColor(otherNode) : '#666'}"></span>
+                        <span class="connection-label">${esc(label)}</span>
+                        <span class="connection-type" style="color:${typeColor};border:1px solid ${typeColor}33;background:${typeColor}15">${conn.edgeType}</span>
+                    </div>
+                `;
+            });
+            html += section(`Connections (${connections.length})`, connHtml);
+        }
+
+        dom.panelBody.innerHTML = html;
+
+        // Bind connection clicks
+        dom.panelBody.querySelectorAll(".connection-item").forEach(el => {
+            el.addEventListener("click", () => {
+                const nodeId = el.dataset.nodeId;
+                const targetNode = state.nodes.get(nodeId);
+                if (targetNode) openDetailPanel(targetNode);
+            });
+        });
+    }
+
+    function getConnections(nodeId) {
+        const conns = [];
+        state.edges.forEach(e => {
+            const srcId = typeof e.source === "object" ? e.source.id : (e.source_claim_id || e.source);
+            const tgtId = typeof e.target === "object" ? e.target.id : (e.target_claim_id || e.target);
+            if (srcId === nodeId) {
+                conns.push({ otherId: tgtId, edgeType: e.type, direction: "outgoing" });
+            } else if (tgtId === nodeId) {
+                conns.push({ otherId: srcId, edgeType: e.type, direction: "incoming" });
+            }
+        });
+        return conns;
+    }
+
+    function closeDetailPanel() {
+        dom.detailPanel.classList.remove("open");
+        state.selectedNodeId = null;
+    }
+
+    function bindPanelClose() {
+        dom.panelClose.addEventListener("click", closeDetailPanel);
+        // Click on SVG background closes panel
+        state.svg.on("click", () => closeDetailPanel());
+    }
+
+    // Panel HTML helpers
+    function section(title, content) {
+        return `<div class="panel-section"><div class="panel-section-title">${title}</div>${content}</div>`;
+    }
+
+    function badge(text, cls) {
+        return `<span class="panel-badge ${cls}">${esc(text)}</span>`;
+    }
+
+    function statusBadgeClass(status) {
+        const s = (status || "").toLowerCase();
+        if (s === "complete") return "type-finding";
+        if (s === "error") return "type-limitation";
+        if (s === "queued") return "type-paper";
+        return "type-paper";
+    }
+
+    function esc(str) {
+        if (!str) return "";
+        const el = document.createElement("span");
+        el.textContent = str;
+        return el.innerHTML;
+    }
+
+    // ─── Fetch Initial Graph ───
+    async function fetchInitialGraph() {
+        try {
+            const res = await fetch(`${CONFIG.api.base}${CONFIG.api.graphEndpoint}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+
+            // Process nodes
+            if (data.nodes) {
+                data.nodes.forEach(n => {
+                    normalizeNode(n);
+                    state.nodes.set(n.id, n);
+                });
+            }
+
+            // Process edges
+            if (data.edges) {
+                data.edges.forEach(e => {
+                    state.edges.set(e.id, e);
+                });
+            }
+
+            // Also handle questions if separate
+            if (data.questions) {
+                data.questions.forEach(q => {
+                    q.label = "OpenQuestion";
+                    state.nodes.set(q.id, q);
+                });
+            }
+
+            render(false);
+        } catch (err) {
+            console.warn("Could not fetch initial graph — starting empty:", err.message);
+        }
+    }
+
+    function normalizeNode(n) {
+        // Ensure a label is set
+        if (!n.label) {
+            if (n.title !== undefined) n.label = "Paper";
+            else if (n.text !== undefined && n.type !== undefined) n.label = "Claim";
+            else if (n.question !== undefined) n.label = "OpenQuestion";
+            else if (n.name !== undefined) n.label = "Concept";
+            else n.label = "Paper";
+        }
+    }
+
+    // ─── WebSocket ───
+    function connectWebSocket() {
+        if (state.ws && state.ws.readyState <= 1) return;
+
+        setWsStatus("reconnecting");
+
+        try {
+            state.ws = new WebSocket(CONFIG.api.ws);
+        } catch (e) {
+            console.error("WS connection error:", e);
+            scheduleReconnect();
+            return;
+        }
+
+        state.ws.onopen = () => {
+            console.log("✅ WebSocket connected");
+            setWsStatus("connected");
+            state.wsReconnectDelay = CONFIG.ws.reconnectDelay; // reset backoff
+        };
+
+        state.ws.onclose = () => {
+            console.warn("WebSocket closed");
+            setWsStatus("disconnected");
+            scheduleReconnect();
+        };
+
+        state.ws.onerror = (err) => {
+            console.error("WebSocket error:", err);
+            state.ws.close();
+        };
+
+        state.ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                handleWsEvent(msg);
+            } catch (e) {
+                console.warn("Failed to parse WS message:", e);
+            }
+        };
+    }
+
+    function scheduleReconnect() {
+        if (state.wsReconnectTimer) clearTimeout(state.wsReconnectTimer);
+        state.wsReconnectTimer = setTimeout(() => {
+            connectWebSocket();
+        }, state.wsReconnectDelay);
+        // Exponential backoff
+        state.wsReconnectDelay = Math.min(
+            state.wsReconnectDelay * CONFIG.ws.reconnectBackoff,
+            CONFIG.ws.maxReconnectDelay
+        );
+    }
+
+    function setWsStatus(status) {
+        dom.wsIndicator.className = `ws-indicator ${status}`;
+        const labels = { connected: "Connected", disconnected: "Disconnected", reconnecting: "Reconnecting…" };
+        dom.wsLabel.textContent = labels[status] || status;
+    }
+
+    // ─── WebSocket Event Handlers ───
+    function handleWsEvent(msg) {
+        const { type, data } = msg;
+
+        switch (type) {
+            case "node_added":
+                handleNodeAdded(data);
+                break;
+            case "edge_added":
+                handleEdgeAdded(data);
+                break;
+            case "edge_updated":
+                handleEdgeUpdated(data);
+                break;
+            case "question_added":
+                handleQuestionAdded(data);
+                break;
+            case "question_resolved":
+                handleQuestionResolved(data);
+                break;
+            case "paper_status":
+                handlePaperStatus(data);
+                break;
+            default:
+                console.log("Unknown WS event:", type, data);
+        }
+    }
+
+    function handleNodeAdded(data) {
+        const node = data.node || data;
+        normalizeNode(node);
+        // Preserve position if node already exists
+        const existing = state.nodes.get(node.id);
+        if (existing) {
+            node.x = existing.x;
+            node.y = existing.y;
+            node.vx = existing.vx;
+            node.vy = existing.vy;
+        }
+        state.nodes.set(node.id, node);
+        render(true);
+        showToast(`New ${node.label}: ${getNodeLabel(node)}`, "info");
+    }
+
+    function handleEdgeAdded(data) {
+        const edge = data.edge || data;
+        state.edges.set(edge.id, edge);
+        render(true);
+
+        if (edge.type === "contradicts") {
+            showToast("⚡ Contradiction detected!", "error");
+        }
+    }
+
+    function handleEdgeUpdated(data) {
+        const edge = data.edge || data;
+        const existing = state.edges.get(edge.id);
+        if (existing) {
+            Object.assign(existing, edge);
+        } else {
+            state.edges.set(edge.id, edge);
+        }
+        render(false);
+    }
+
+    function handleQuestionAdded(data) {
+        const q = data.question || data;
+        q.label = "OpenQuestion";
+        state.nodes.set(q.id, q);
+        render(true);
+        showToast(`❓ New question: ${truncate(q.question, 50)}`, "info");
+    }
+
+    function handleQuestionResolved(data) {
+        const qId = data.question_id || data.id;
+        const q = state.nodes.get(qId);
+        if (q) {
+            q.status = "resolved";
+            render(false);
+            showToast("✅ Question resolved", "success");
+        }
+    }
+
+    function handlePaperStatus(data) {
+        const { paper_id, status } = data;
+        const paperNode = state.nodes.get(paper_id);
+        if (paperNode) {
+            paperNode.status = status;
+        }
+        setPipelineStatus(status);
+
+        if (status === "complete") {
+            showToast("🎉 Paper analysis complete!", "success");
+        } else if (status === "error") {
+            showToast("⚠️ Error processing paper", "error");
+        }
+    }
+
+    function setPipelineStatus(status) {
+        const s = (status || "").toLowerCase();
+        const statusDot = dom.statusDot;
+        statusDot.className = "status-dot";
+
+        const displayNames = {
+            queued: "Queued",
+            extracting: "Extracting Claims…",
+            claims_ready: "Claims Ready",
+            comparing: "Comparing Claims…",
+            edges_ready: "Edges Ready",
+            gap_finding: "Finding Gaps…",
+            complete: "Complete",
+            error: "Error",
+        };
+
+        dom.statusLabel.textContent = displayNames[s] || status || "Ready";
+
+        if (["extracting", "comparing", "gap_finding", "queued"].includes(s)) {
+            statusDot.classList.add("processing");
+        } else if (s === "complete") {
+            statusDot.classList.add("complete");
+            // Reset to idle after 5 seconds
+            setTimeout(() => {
+                statusDot.className = "status-dot idle";
+                dom.statusLabel.textContent = "Ready";
+            }, 5000);
+        } else if (s === "error") {
+            statusDot.classList.add("error");
+        } else {
+            statusDot.classList.add("idle");
+        }
+    }
+
+    // ─── Upload ───
+    function bindUpload() {
+        const dropzone = dom.uploadDropzone;
+        const fileInput = dom.fileInput;
+
+        // Click to browse
+        dropzone.addEventListener("click", (e) => {
+            if (e.target === fileInput) return;
+            fileInput.click();
+        });
+
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files.length > 0) {
+                uploadFile(fileInput.files[0]);
+            }
+        });
+
+        // Drag & drop
+        dropzone.addEventListener("dragenter", (e) => {
+            e.preventDefault();
+            dropzone.classList.add("drag-over");
+        });
+
+        dropzone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropzone.classList.add("drag-over");
+        });
+
+        dropzone.addEventListener("dragleave", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("drag-over");
+        });
+
+        dropzone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("drag-over");
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+                    uploadFile(file);
+                } else {
+                    showToast("Please upload a PDF file", "error");
+                }
+            }
+        });
+    }
+
+    async function uploadFile(file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        dom.uploadContent.style.display = "none";
+        dom.uploadProgress.classList.remove("hidden");
+        dom.progressFill.style.width = "0%";
+        dom.uploadStatusText.textContent = `Uploading ${file.name}…`;
+
+        try {
+            const xhr = new XMLHttpRequest();
+
+            xhr.upload.addEventListener("progress", (e) => {
+                if (e.lengthComputable) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    dom.progressFill.style.width = `${pct}%`;
+                    dom.uploadStatusText.textContent = `Uploading… ${pct}%`;
+                }
+            });
+
+            const result = await new Promise((resolve, reject) => {
+                xhr.open("POST", `${CONFIG.api.base}${CONFIG.api.uploadEndpoint}`);
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        resolve(JSON.parse(xhr.responseText));
+                    } else {
+                        reject(new Error(`Upload failed: HTTP ${xhr.status}`));
+                    }
+                };
+                xhr.onerror = () => reject(new Error("Network error during upload"));
+                xhr.send(formData);
+            });
+
+            dom.progressFill.style.width = "100%";
+            dom.uploadStatusText.textContent = "Processing…";
+            showToast(`📄 Paper uploaded! ID: ${result.paper_id || "OK"}`, "success");
+            setPipelineStatus(result.status || "queued");
+
+            // Reset upload UI after a delay
+            setTimeout(resetUploadUI, 2500);
+
+        } catch (err) {
+            console.error("Upload error:", err);
+            dom.uploadStatusText.textContent = "Upload failed";
+            dom.progressFill.style.width = "0%";
+            showToast(`Upload failed: ${err.message}`, "error");
+            setTimeout(resetUploadUI, 3000);
+        }
+
+        // Reset file input
+        dom.fileInput.value = "";
+    }
+
+    function resetUploadUI() {
+        dom.uploadContent.style.display = "";
+        dom.uploadProgress.classList.add("hidden");
+        dom.progressFill.style.width = "0%";
+    }
+
+    // ─── Toast Notifications ───
+    function showToast(message, type = "info") {
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        dom.toastContainer.appendChild(toast);
+
+        // Auto-remove
+        setTimeout(() => {
+            toast.classList.add("toast-out");
+            setTimeout(() => toast.remove(), 300);
+        }, 4000);
+    }
+
+    // ─── Window resize handler ───
+    window.addEventListener("resize", () => {
+        const width = dom.svg.clientWidth;
+        const height = dom.svg.clientHeight;
+        if (state.simulation) {
+            state.simulation.force("center", d3.forceCenter(width / 2, height / 2).strength(CONFIG.graph.centerStrength));
+            state.simulation.alpha(0.1).restart();
+        }
+    });
+
+    // ─── Boot ───
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", init);
+    } else {
+        init();
+    }
+
+})();

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Research Cartographer — Knowledge Graph</title>
+
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet"
+    />
+
+    <!-- D3.js v7 -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+
+    <!-- Our styles -->
+    <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+    <!-- ─── Ambient background particles (CSS animated) ─── -->
+    <!-- ─── Header Bar ─── -->
+    <header id="header">
+        <div class="header-left">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 32 32" width="28" height="28">
+                    <circle cx="16" cy="16" r="4" fill="#4a9eff" opacity="0.9"/>
+                    <circle cx="8" cy="8" r="2.5" fill="#00ff88" opacity="0.8"/>
+                    <circle cx="24" cy="8" r="2.5" fill="#ffd700" opacity="0.8"/>
+                    <circle cx="8" cy="24" r="2.5" fill="#9b59b6" opacity="0.8"/>
+                    <circle cx="24" cy="24" r="2" fill="#ff4444" opacity="0.8"/>
+                    <line x1="16" y1="16" x2="8" y2="8" stroke="#4a9eff" stroke-width="0.8" opacity="0.5"/>
+                    <line x1="16" y1="16" x2="24" y2="8" stroke="#00ff88" stroke-width="0.8" opacity="0.5"/>
+                    <line x1="16" y1="16" x2="8" y2="24" stroke="#ffd700" stroke-width="0.8" opacity="0.5"/>
+                    <line x1="16" y1="16" x2="24" y2="24" stroke="#ff4444" stroke-width="0.8" opacity="0.5"/>
+                </svg>
+                <h1 class="logo-text">Research Cartographer</h1>
+            </div>
+        </div>
+        <div class="header-center">
+            <div id="pipeline-status" class="pipeline-status">
+                <span class="status-dot idle"></span>
+                <span class="status-label">Ready</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <div id="ws-indicator" class="ws-indicator disconnected" title="WebSocket status">
+                <span class="ws-dot"></span>
+                <span class="ws-label">Disconnected</span>
+            </div>
+            <div class="graph-stats">
+                <span class="stat" title="Papers"><span class="stat-icon">📄</span> <span id="stat-papers">0</span></span>
+                <span class="stat" title="Claims"><span class="stat-icon">💡</span> <span id="stat-claims">0</span></span>
+                <span class="stat" title="Edges"><span class="stat-icon">🔗</span> <span id="stat-edges">0</span></span>
+                <span class="stat" title="Questions"><span class="stat-icon">❓</span> <span id="stat-questions">0</span></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- ─── Main Content ─── -->
+    <main id="main">
+        <!-- Graph SVG Canvas -->
+        <div id="graph-container">
+            <svg id="graph-svg"></svg>
+
+            <!-- Empty state overlay -->
+            <div id="empty-state" class="empty-state">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 120 120" width="120" height="120">
+                        <defs>
+                            <radialGradient id="glow-grad">
+                                <stop offset="0%" stop-color="#4a9eff" stop-opacity="0.3"/>
+                                <stop offset="100%" stop-color="#4a9eff" stop-opacity="0"/>
+                            </radialGradient>
+                        </defs>
+                        <circle cx="60" cy="60" r="50" fill="url(#glow-grad)"/>
+                        <circle cx="60" cy="60" r="8" fill="#4a9eff" opacity="0.9">
+                            <animate attributeName="r" values="8;10;8" dur="2s" repeatCount="indefinite"/>
+                        </circle>
+                        <circle cx="35" cy="40" r="5" fill="#00ff88" opacity="0.7">
+                            <animate attributeName="opacity" values="0.7;0.3;0.7" dur="3s" repeatCount="indefinite"/>
+                        </circle>
+                        <circle cx="85" cy="40" r="4" fill="#ffd700" opacity="0.7">
+                            <animate attributeName="opacity" values="0.7;0.4;0.7" dur="2.5s" repeatCount="indefinite"/>
+                        </circle>
+                        <circle cx="45" cy="85" r="4.5" fill="#9b59b6" opacity="0.7">
+                            <animate attributeName="opacity" values="0.6;0.3;0.6" dur="3.5s" repeatCount="indefinite"/>
+                        </circle>
+                        <circle cx="80" cy="78" r="3.5" fill="#ff4444" opacity="0.6">
+                            <animate attributeName="opacity" values="0.6;0.2;0.6" dur="2.8s" repeatCount="indefinite"/>
+                        </circle>
+                        <line x1="60" y1="60" x2="35" y2="40" stroke="#4a9eff" stroke-width="0.7" opacity="0.3"/>
+                        <line x1="60" y1="60" x2="85" y2="40" stroke="#00ff88" stroke-width="0.7" opacity="0.3"/>
+                        <line x1="60" y1="60" x2="45" y2="85" stroke="#ffd700" stroke-width="0.7" opacity="0.3"/>
+                        <line x1="60" y1="60" x2="80" y2="78" stroke="#ff4444" stroke-width="0.7" opacity="0.3"/>
+                    </svg>
+                </div>
+                <h2>No papers yet</h2>
+                <p>Upload a research PDF to begin mapping the knowledge landscape</p>
+            </div>
+
+            <!-- Zoom controls -->
+            <div class="zoom-controls">
+                <button id="zoom-in" class="zoom-btn" title="Zoom in">+</button>
+                <button id="zoom-reset" class="zoom-btn" title="Reset zoom">⟲</button>
+                <button id="zoom-out" class="zoom-btn" title="Zoom out">−</button>
+            </div>
+
+            <!-- Legend -->
+            <div class="graph-legend">
+                <div class="legend-title">Legend</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#4a9eff"></span> Paper</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#00ff88"></span> Finding</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#ffd700"></span> Method</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#ff4444"></span> Contradiction</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#ffffff; box-shadow:0 0 6px #fff"></span> Question</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#9b59b6"></span> Concept</div>
+            </div>
+        </div>
+
+        <!-- Upload Area (floating bottom-right) -->
+        <div id="upload-area" class="upload-area">
+            <div id="upload-dropzone" class="upload-dropzone">
+                <input type="file" id="file-input" accept=".pdf" hidden />
+                <div class="upload-content">
+                    <div class="upload-icon">
+                        <svg viewBox="0 0 48 48" width="40" height="40">
+                            <path d="M24 4L12 16h8v12h8V16h8z" fill="currentColor" opacity="0.9"/>
+                            <rect x="8" y="34" width="32" height="4" rx="2" fill="currentColor" opacity="0.4"/>
+                        </svg>
+                    </div>
+                    <p class="upload-label">Drop PDF here or <span class="upload-browse">browse</span></p>
+                    <p class="upload-hint">Supports .pdf files</p>
+                </div>
+                <!-- Upload progress -->
+                <div id="upload-progress" class="upload-progress hidden">
+                    <div class="progress-bar">
+                        <div id="progress-fill" class="progress-fill"></div>
+                    </div>
+                    <p id="upload-status-text" class="upload-status-text">Uploading...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ─── Detail Side Panel ─── -->
+    <aside id="detail-panel" class="detail-panel">
+        <div class="panel-header">
+            <h2 id="panel-title" class="panel-title">Node Details</h2>
+            <button id="panel-close" class="panel-close" title="Close panel">✕</button>
+        </div>
+        <div id="panel-body" class="panel-body">
+            <!-- Populated dynamically -->
+        </div>
+    </aside>
+
+    <!-- ─── Toast Notifications ─── -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <!-- Graph JS -->
+    <script src="/static/graph.js"></script>
+</body>
+</html>

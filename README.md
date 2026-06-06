@@ -22,6 +22,17 @@ Built for the **[Microsoft Agents League Hackathon](https://aka.ms/agentsleague/
 
 ---
 
+## 🚧 Current Build Status
+
+As of **June 6, 2026**:
+
+- ✅ Committed foundation: seed docs, graph schema/manager, delta emitter, base agent, PDF parser, Foundry IQ uploader, Extractor, and Comparator.
+- 🔄 Working tree WIP: Cartographer async orchestrator, FastAPI routes, D3 frontend, and MVP Gap Finder exist but still need review, runtime testing, and focused commits.
+- ⬜ External setup pending: Azure resource group, Foundry IQ knowledge base, Azure OpenAI deployment, Neo4j AuraDB credentials, and real `.env` population.
+- ⬜ Critical feature gaps: true Microsoft Agent Framework A2A setup, live Foundry IQ/Neo4j verification, Web IQ novelty scoring, WebSocket/browser QA, and end-to-end demo testing.
+
+---
+
 ## 🏗️ Architecture at a Glance
 
 ```
@@ -78,7 +89,7 @@ When you upload a new paper:
 | Web Grounding | Web IQ |
 | Graph Database | Neo4j |
 | Backend | FastAPI + asyncio + WebSockets |
-| Frontend | D3.js v7 + Tailwind CSS |
+| Frontend | D3.js v7 + custom CSS |
 | PDF Parsing | PyMuPDF + pdfplumber |
 | Embeddings | Azure OpenAI `text-embedding-3-large` |
 | Deployment | Azure Container Apps |

@@ -88,89 +88,99 @@ Status note 2026-06-06 10:00 +03:00: Comparator code is present with graph-backe
 
 ## Day 4 — Cartographer Orchestrator + A2A
 
-- ⬜ Build `src/agents/cartographer.py`
+- 🔄 Build `src/agents/cartographer.py`
   - ⬜ Implement A2A protocol setup (Microsoft Agent Framework 1.0)
-  - ⬜ Define pipeline state machine per paper
-  - ⬜ Dispatch Extractor → await → dispatch Comparator → await → dispatch Gap Finder
-  - ⬜ Handle partial failures — log and continue
-  - ⬜ Track pipeline status: QUEUED → EXTRACTING → COMPARING → GAP_FINDING → COMPLETE
+  - ✅ Define pipeline state machine per paper
+  - ✅ Dispatch Extractor → await → dispatch Comparator → await → dispatch Gap Finder
+  - ✅ Handle partial failures — log and continue
+  - ✅ Track pipeline status: QUEUED → EXTRACTING → COMPARING → GAP_FINDING → COMPLETE
 - ✅ Build `src/graph/delta_emitter.py`
   - ✅ Event queue for graph changes
   - ✅ `emit(event_type, data)` method
   - ✅ Subscriber pattern for WebSocket connections
 - ⬜ Integration test: full pipeline on 3 papers without UI
 
+Status note 2026-06-06 10:05 +03:00: `cartographer.py` exists as an async orchestrator with queue/state handling and direct sub-agent calls, but true Microsoft Agent Framework A2A setup is not implemented yet. Keep this as in progress until A2A is integrated or the fallback is explicitly documented.
+
 ---
 
 ## Day 5 — FastAPI Backend + WebSocket
 
-- ⬜ Build `src/api/models.py`
-  - ⬜ Pydantic models for all request/response shapes
-  - ⬜ WebSocket message schemas
-- ⬜ Build `src/api/routes/upload.py`
-  - ⬜ `POST /upload` — receive PDF, trigger Cartographer pipeline
-  - ⬜ Return `{ paper_id, status: "queued" }`
-- ⬜ Build `src/api/routes/graph.py`
-  - ⬜ `GET /graph` — return full graph snapshot for initial load
-  - ⬜ `GET /paper/{paper_id}/status` — pipeline progress
-  - ⬜ `WS /ws/graph` — stream delta events to frontend
-- ⬜ Build `src/api/main.py`
-  - ⬜ Mount all routes
-  - ⬜ CORS config
-  - ⬜ Serve `src/frontend/` as static files
+- ✅ Build `src/api/models.py`
+  - ✅ Pydantic models for all request/response shapes
+  - ✅ WebSocket message schemas
+- ✅ Build `src/api/routes/upload.py`
+  - ✅ `POST /upload` — receive PDF, trigger Cartographer pipeline
+  - ✅ Return `{ paper_id, status: "queued" }`
+- ✅ Build `src/api/routes/graph.py`
+  - ✅ `GET /graph` — return full graph snapshot for initial load
+  - ✅ `GET /paper/{paper_id}/status` — pipeline progress
+  - ✅ `WS /ws/graph` — stream delta events to frontend
+- ✅ Build `src/api/main.py`
+  - ✅ Mount all routes
+  - ✅ CORS config
+  - ✅ Serve `src/frontend/` as static files
 - ⬜ Test WebSocket with `wscat` — verify events stream correctly
+
+Status note 2026-06-06 10:05 +03:00: FastAPI files exist with upload, graph snapshot, paper status, WebSocket subscription, CORS, lifespan initialization, and static frontend serving. Runtime/WebSocket testing is still pending local dependencies, Neo4j, and Azure credentials.
 
 ---
 
 ## Day 6 — D3.js Frontend
 
-- ⬜ Build `src/frontend/index.html`
-  - ⬜ App shell: graph canvas + sidebar + upload button
-  - ⬜ Upload drag-and-drop zone
-  - ⬜ Paper pipeline status indicator
-- ⬜ Build `src/frontend/graph.js`
-  - ⬜ Initial graph load from `GET /graph`
-  - ⬜ D3.js v7 force-directed simulation
-  - ⬜ Node rendering with color-coding by type
-  - ⬜ Edge rendering with color-coding by relationship type
-  - ⬜ Node size proportional to connection count
-  - ⬜ WebSocket connection to `WS /ws/graph`
-  - ⬜ Delta event handlers: `node_added`, `edge_added`, `edge_updated`, `question_added`
-  - ⬜ Animate new nodes/edges with brief glow effect
-  - ⬜ Click handler: opens side panel with node details
-- ⬜ Build `src/frontend/styles.css`
-  - ⬜ Dark background (#0a0a1a — space-like)
-  - ⬜ Glow effects for new nodes (CSS animation)
-  - ⬜ Pulsing red halo for contradiction nodes
-  - ⬜ White glow for OpenQuestion nodes
-  - ⬜ Clean, readable side panel
+- ✅ Build `src/frontend/index.html`
+  - ✅ App shell: graph canvas + sidebar + upload button
+  - ✅ Upload drag-and-drop zone
+  - ✅ Paper pipeline status indicator
+- ✅ Build `src/frontend/graph.js`
+  - ✅ Initial graph load from `GET /graph`
+  - ✅ D3.js v7 force-directed simulation
+  - ✅ Node rendering with color-coding by type
+  - ✅ Edge rendering with color-coding by relationship type
+  - ✅ Node size proportional to connection count
+  - ✅ WebSocket connection to `WS /ws/graph`
+  - ✅ Delta event handlers: `node_added`, `edge_added`, `edge_updated`, `question_added`
+  - ✅ Animate new nodes/edges with brief glow effect
+  - ✅ Click handler: opens side panel with node details
+- ✅ Build `src/frontend/styles.css`
+  - ✅ Dark background (#0a0a1a — space-like)
+  - ✅ Glow effects for new nodes (CSS animation)
+  - ✅ Pulsing red halo for contradiction nodes
+  - ✅ White glow for OpenQuestion nodes
+  - ✅ Clean, readable side panel
+
+Status note 2026-06-06 10:05 +03:00: Frontend files exist with D3 v7 graph rendering, upload UI, WebSocket delta handlers, click-to-inspect side panel, and live-update restart at `simulation.alpha(0.3).restart()`. Browser visual QA is still pending before treating this as polished.
 
 ---
 
 ## Day 7 — Integration + Live Demo Flow
 
 - ⬜ End-to-end test: upload paper → see graph animate live in browser
-- ⬜ Verify contradiction detection is visually distinct (red edges glow)
-- ⬜ Verify new paper upload triggers re-evaluation of existing edges
-- ⬜ Add loading state to upload button
-- ⬜ Add error handling — show user-friendly messages on failure
-- ⬜ Polish: smooth force simulation, no overlapping labels
-- ⬜ Add legend panel (what each color/shape means)
+- 🔄 Verify contradiction detection is visually distinct (red edges glow)
+- 🔄 Verify new paper upload triggers re-evaluation of existing edges
+- ✅ Add loading state to upload button
+- ✅ Add error handling — show user-friendly messages on failure
+- 🔄 Polish: smooth force simulation, no overlapping labels
+- ✅ Add legend panel (what each color/shape means)
 - ⬜ Performance test: 10 papers, verify no UI freeze
+
+Status note 2026-06-06 10:05 +03:00: Frontend includes upload progress, toasts, legend, contradiction styling, and smooth D3 restart settings. End-to-end browser verification, edge re-evaluation proof, label overlap review, and performance testing are still pending.
 
 ---
 
 ## Day 8 — Gap Finder (Stretch) + Demo Video
 
 ### Gap Finder (if time allows)
-- ⬜ Build `src/agents/gap_finder.py`
-  - ⬜ Query all claims from Neo4j
-  - ⬜ Identify conceptual "spaces" between claims with no bridging paper
+- 🔄 Build `src/agents/gap_finder.py`
+  - 🔄 Query all claims from Neo4j
+  - 🔄 Identify conceptual "spaces" between claims with no bridging paper
   - ⬜ Cross-reference with Web IQ to verify these gaps exist in real literature
-  - ⬜ Score novelty: 0 = well-studied, 1 = truly unexplored
-  - ⬜ Write OpenQuestion nodes to Neo4j
-- ⬜ Add OpenQuestion rendering in D3.js (glowing white nodes)
-- ⬜ Add "question resolves" animation when a new paper answers a gap
+  - 🔄 Score novelty: 0 = well-studied, 1 = truly unexplored
+  - 🔄 Write OpenQuestion nodes to Neo4j
+- ✅ Add OpenQuestion rendering in D3.js (glowing white nodes)
+- 🔄 Add "question resolves" animation when a new paper answers a gap
+
+Status note 2026-06-06 10:05 +03:00: `gap_finder.py` exists but is an MVP/mock implementation: it analyzes provided claims and yields `OpenQuestion` nodes, while Web IQ novelty scoring is still skipped and novelty uses deterministic placeholder scoring. Do not mark complete until Web IQ is real or the mock is explicitly accepted for demo scope.
 
 ### Demo Video
 - ⬜ Prepare 5 test papers from the same research domain (download real PDFs)
