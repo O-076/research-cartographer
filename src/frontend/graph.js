@@ -534,7 +534,7 @@
         let html = "";
 
         if (node.label === "Paper") {
-            dom.panelTitle.textContent = "📄 Paper";
+            dom.panelTitle.innerHTML = '<i class="fa-solid fa-file-lines"></i> Paper';
             html += badge("Paper", "paper");
             if (node.status) html += badge(node.status, statusBadgeClass(node.status));
             html += section("Title", `<p class="panel-text"><strong>${esc(node.title || "Untitled")}</strong></p>`);
@@ -548,7 +548,7 @@
                 html += section("Abstract", `<p class="panel-text">${esc(node.abstract)}</p>`);
             }
         } else if (node.label === "Claim") {
-            dom.panelTitle.textContent = "💡 Claim";
+            dom.panelTitle.innerHTML = '<i class="fa-solid fa-lightbulb"></i> Claim';
             html += badge(node.type || "finding", `type-${(node.type || "finding").toLowerCase()}`);
             if (node.section) html += badge(node.section, "type-paper");
             html += section("Claim", `<p class="panel-text">${esc(node.text || "")}</p>`);
@@ -570,7 +570,7 @@
                 html += section("Source Text", `<p class="panel-text" style="font-style:italic;opacity:0.8">"${esc(node.source_chunk_text)}"</p>`);
             }
         } else if (node.label === "OpenQuestion") {
-            dom.panelTitle.textContent = "❓ Open Question";
+            dom.panelTitle.innerHTML = '<i class="fa-solid fa-circle-question"></i> Open Question';
             html += badge("Question", "type-question");
             if (node.status) html += badge(node.status, "type-paper");
             html += section("Question", `<p class="panel-text"><strong>${esc(node.question || "")}</strong></p>`);
@@ -589,7 +589,7 @@
                 html += section("Web Evidence", `<p class="panel-text">${esc(node.web_evidence)}</p>`);
             }
         } else if (node.label === "Concept") {
-            dom.panelTitle.textContent = "🔮 Concept";
+            dom.panelTitle.innerHTML = '<i class="fa-solid fa-bolt"></i> Concept';
             html += badge("Concept", "type-concept");
             html += section("Name", `<p class="panel-text"><strong>${esc(node.name || "")}</strong></p>`);
         }
