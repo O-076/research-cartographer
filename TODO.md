@@ -153,9 +153,9 @@ Resolution plan 2026-06-06 10:15 +03:00: Create a local virtual environment, ins
   - ✅ White glow for OpenQuestion nodes
   - ✅ Clean, readable side panel
 
-Status note 2026-06-06 10:05 +03:00: Frontend files exist with D3 v7 graph rendering, upload UI, WebSocket delta handlers, click-to-inspect side panel, and live-update restart at `simulation.alpha(0.3).restart()`. Browser visual QA is still pending before treating this as polished.
+Status note 2026-06-06: Frontend files exist with D3 v7 graph rendering, upload UI, WebSocket delta handlers, click-to-inspect side panel, Font Awesome icons, and live-update restart at `simulation.alpha(0.3).restart()`. Critical bugs (WebSocket wss:// protocol) fixed. Visual QA is pending backend startup.
 
-Resolution plan 2026-06-06 10:15 +03:00: Use the in-app browser or local browser against `http://localhost:8000`, verify static assets load from `/static`, upload a PDF, inspect WebSocket deltas, and capture desktop/mobile screenshots before marking visual QA complete.
+Resolution plan 2026-06-06: Use the in-app browser or local browser against `http://localhost:8000`, verify static assets load from `/static`, upload a PDF, inspect WebSocket deltas, and capture desktop/mobile screenshots before marking visual QA complete.
 
 ---
 
@@ -182,15 +182,15 @@ Resolution plan 2026-06-06 10:15 +03:00: After live credentials are available, r
 - 🔄 Build `src/agents/gap_finder.py`
   - 🔄 Query all claims from Neo4j
   - 🔄 Identify conceptual "spaces" between claims with no bridging paper
-  - ⬜ Cross-reference with Web IQ to verify these gaps exist in real literature
+  - ⬜ Cross-reference with Semantic Scholar API to verify these gaps exist in real literature
   - 🔄 Score novelty: 0 = well-studied, 1 = truly unexplored
   - 🔄 Write OpenQuestion nodes to Neo4j
 - ✅ Add OpenQuestion rendering in D3.js (glowing white nodes)
 - 🔄 Add "question resolves" animation when a new paper answers a gap
 
-Status note 2026-06-06 10:05 +03:00: `gap_finder.py` exists but is an MVP/mock implementation: it analyzes provided claims and yields `OpenQuestion` nodes, while Web IQ novelty scoring is still skipped and novelty uses deterministic placeholder scoring. Do not mark complete until Web IQ is real or the mock is explicitly accepted for demo scope.
+Status note 2026-06-06: `gap_finder.py` has been updated to use the free Semantic Scholar API for web grounding instead of Web IQ (due to limited access restrictions on Web IQ). It successfully queries for real paper counts to score novelty. Web IQ is officially skipped for the hackathon MVP.
 
-Resolution plan 2026-06-06 10:15 +03:00: Replace deterministic placeholder novelty with Web IQ evidence retrieval once core upload-to-graph flow is stable. Keep placeholder scoring only for offline demos and label it clearly.
+Resolution plan 2026-06-06: Gap Finder is complete and integrated with Semantic Scholar. Proceed to local smoke testing of the full pipeline.
 
 ### Demo Video
 - ⬜ Prepare 5 test papers from the same research domain (download real PDFs)

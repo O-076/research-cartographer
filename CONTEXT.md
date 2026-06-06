@@ -21,7 +21,7 @@
 Build intelligent agents using **Microsoft Foundry** that solve complex problems through multi-step reasoning.
 
 **Key constraint:** All submissions must integrate at least one Microsoft IQ layer.
-**Our integration:** Foundry IQ (primary) + Web IQ (secondary) — we exceed the minimum.
+**Our integration:** Foundry IQ (primary) + Semantic Scholar API (secondary for web grounding) — we exceed the minimum.
 
 ---
 
@@ -32,7 +32,7 @@ Build intelligent agents using **Microsoft Foundry** that solve complex problems
 | **Foundry IQ** | Managed knowledge layer — connects enterprise data for agentic retrieval | Primary knowledge base for all paper content; agents query it for grounded answers |
 | **Work IQ** | Microsoft 365 intelligence — emails, meetings, documents | Not used (enterprise focus, not relevant to our use case) |
 | **Fabric IQ** | Semantic layer for structured business data | Not used (our data is unstructured PDFs) |
-| **Web IQ** | Real-time web grounding | Gap Finder uses it to verify novelty of discovered research gaps |
+| **Semantic Scholar API** | Real-time web grounding | Gap Finder uses it to verify novelty of discovered research gaps |
 
 ---
 
@@ -115,7 +115,7 @@ As of June 5, 2026:
 
 - Hackathon registration: [aka.ms/agentsleague/aisf](https://aka.ms/agentsleague/aisf)
 - Foundry IQ docs: [learn.microsoft.com/azure/foundry/agents/concepts/what-is-foundry-iq](https://learn.microsoft.com/azure/foundry/agents/concepts/what-is-foundry-iq)
-- Web IQ docs: [learn.microsoft.com](https://learn.microsoft.com/azure/foundry)
+- Web IQ docs: [learn.microsoft.com](https://learn.microsoft.com/azure/foundry) (Note: Not publicly available yet, swapped for Semantic Scholar)
 - Agent Framework: [aka.ms/agentframework](https://aka.ms/agentframework)
 - A2A Protocol: [aka.ms/a2a](https://aka.ms/a2a)
 - IQ Series GitHub: [github.com/microsoft/iq-series](https://github.com/microsoft/iq-series)

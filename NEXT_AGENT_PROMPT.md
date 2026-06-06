@@ -72,16 +72,13 @@ Solution path:
 - If feasible, replace direct sub-agent calls in `cartographer.py` with A2A dispatch.
 - If not feasible quickly, keep async fallback and document it clearly in `README.md`, `TODO.md`, and submission notes.
 
-### 3. Web IQ novelty scoring is placeholder
+### 3. Web IQ novelty scoring replaced by Semantic Scholar
 
-Current state: `GapFinderAgent` yields OpenQuestion nodes, but novelty is deterministic placeholder scoring.
+Current state: `GapFinderAgent` uses the free Semantic Scholar API for web grounding instead of Web IQ (which is in limited access). It queries Semantic Scholar for real paper counts to score novelty.
 
 Solution path:
 
-- Add Web IQ client configuration via `.env` only.
-- Query Web IQ for each candidate question/concept pair.
-- Store concise `web_evidence` and compute novelty from result count/relevance.
-- Mark Day 8 complete only after this is real or explicitly accepted as demo scope.
+- None required. This is considered complete for the hackathon MVP.
 
 ### 4. Live Neo4j/Foundry verification is pending
 

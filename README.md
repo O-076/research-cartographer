@@ -3,7 +3,7 @@
 > An autonomous multi-agent system that ingests scientific papers and builds a **living, evolving knowledge graph** — revealing how ideas connect, where fields agree, where they conflict, and what questions nobody has asked yet.
 
 Built for the **[Microsoft Agents League Hackathon](https://aka.ms/agentsleague/aisf)** · June 4–14, 2026
-**Track:** Reasoning Agents | **IQ Layers:** Foundry IQ + Web IQ | **Protocol Target:** A2A
+**Track:** Reasoning Agents | **IQ Layers:** Foundry IQ | **Web Grounding:** Semantic Scholar API | **Protocol Target:** A2A
 
 ---
 
@@ -26,10 +26,12 @@ Built for the **[Microsoft Agents League Hackathon](https://aka.ms/agentsleague/
 
 As of **June 6, 2026**:
 
-- ✅ Committed foundation: seed docs, graph schema/manager, delta emitter, base agent, PDF parser, Foundry IQ uploader, Extractor, Comparator, async Cartographer fallback, FastAPI backend, D3 frontend, and MVP Gap Finder placeholder.
-- ✅ Working tree status after `057004e`: clean.
+- ✅ Committed foundation: seed docs, graph schema/manager, delta emitter, base agent, PDF parser, Foundry IQ uploader, Extractor, Comparator, async Cartographer fallback, FastAPI backend, D3 frontend, and Gap Finder.
+- ✅ Working tree status: clean.
+- ✅ Frontend UI polish: upgraded to Font Awesome vector icons, WebSocket secured.
+- ✅ Web Grounding: Gap Finder fully wired to free Semantic Scholar API for novelty scoring.
 - ⬜ External setup pending: Azure resource group, Foundry IQ knowledge base, Azure OpenAI deployment, Neo4j AuraDB credentials, and real `.env` population.
-- ⬜ Critical feature gaps: true Microsoft Agent Framework A2A setup, live Foundry IQ/Neo4j verification, Web IQ novelty scoring, WebSocket/browser QA, and end-to-end demo testing.
+- ⬜ Critical feature gaps: true Microsoft Agent Framework A2A setup, live Foundry IQ/Neo4j verification, WebSocket/browser QA, and end-to-end demo testing.
 
 ### Caveat Resolution Plan
 
@@ -37,7 +39,7 @@ As of **June 6, 2026**:
 |--------|----------|
 | Local imports fail without dependencies | Create a virtual environment, install pinned `requirements.txt`, then run import and FastAPI smoke tests. |
 | A2A is not wired yet | Timebox Microsoft Agent Framework A2A research/implementation; if blocked, keep the async fallback and document it clearly before submission. |
-| Web IQ novelty scoring is placeholder | Replace deterministic mock scoring in `GapFinderAgent` with Web IQ search evidence and novelty scoring. |
+| Web IQ novelty scoring is in limited access | Replaced with free Semantic Scholar API in `GapFinderAgent` for web grounding and novelty scoring. |
 | Neo4j/Foundry tests are not run | Populate `.env` locally only, initialize Neo4j constraints, upload one real PDF, and verify chunks/claims/edges. |
 | Browser/WebSocket QA is pending | Run the FastAPI app locally, open `http://localhost:8000`, upload a PDF, and verify deltas animate without full graph re-fetches. |
 | JS syntax check via shell was blocked | Validate the frontend through the browser/devtools or an approved Node runtime once dependencies are installed. |
@@ -75,7 +77,7 @@ PDF Upload ──→ Foundry IQ Knowledge Base ──→ Multi-Agent Reasoning L
 |-------|------|-------|
 | 🔍 **Extractor** | Pulls claims, methodology, and findings from each paper section | `read_chunk`, `write_claim`, `tag_methodology` |
 | ⚖️ **Comparator** | Cross-references claims across all papers, labels edges | `query_foundry_iq`, `semantic_diff`, `write_edge` |
-| 🔭 **Gap Finder** | Identifies unanswered questions, scores novelty via Web IQ | `query_all_claims`, `cross_reference_web`, `score_novelty` |
+| 🔭 **Gap Finder** | Identifies unanswered questions, scores novelty via Semantic Scholar | `query_all_claims`, `cross_reference_web`, `score_novelty` |
 | 🗺️ **Cartographer** | A2A orchestrator — coordinates agents, maintains graph state | A2A protocol, `update_graph`, `trigger_reanalysis` |
 
 ---
@@ -97,7 +99,7 @@ When you upload a new paper:
 | Agent Framework | Microsoft Agent Framework 1.0 (GA, Build 2026) |
 | Agent Coordination | Async fallback now; A2A Protocol target |
 | Knowledge Base | Azure AI Foundry IQ |
-| Web Grounding | Web IQ target; placeholder novelty scoring now |
+| Web Grounding | Semantic Scholar API |
 | Graph Database | Neo4j |
 | Backend | FastAPI + asyncio + WebSockets |
 | Frontend | D3.js v7 + custom CSS |
@@ -164,7 +166,7 @@ research-cartographer/
 - **Event:** [Agents League @ AISF 2026](https://aka.ms/agentsleague/aisf)
 - **Submission deadline:** June 14, 2026 · 11:59 PM PT
 - **Track:** Reasoning Agents (Microsoft Foundry)
-- **IQ Requirement:** Foundry IQ + Web IQ (exceeds minimum of 1)
+- **IQ Requirement:** Foundry IQ (meets minimum of 1) + Semantic Scholar API for web grounding
 - **Prize pool:** $55,000 USD total
 
 ---

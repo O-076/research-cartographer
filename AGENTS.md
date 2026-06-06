@@ -20,7 +20,7 @@ These decisions are final. Do not suggest alternatives.
 - **Agent framework:** Microsoft Agent Framework 1.0 — not LangChain, not CrewAI
 - **Agent coordination:** A2A Protocol — not custom message passing
 - **Knowledge base:** Azure AI Foundry IQ — not a custom vector store
-- **Web grounding:** Web IQ — not Bing API directly
+- **Web grounding:** Semantic Scholar API — not Web IQ (limited access)
 - **Graph DB:** Neo4j — not a plain dict or NetworkX (though NetworkX may be used for local testing)
 - **Backend:** FastAPI — not Flask, not Django
 - **Frontend graph:** D3.js v7 force-directed — not Cytoscape.js, not vis.js
@@ -116,10 +116,10 @@ src/
 
 ### Agent 3 — Gap Finder (`src/agents/gap_finder.py`)
 
-**Purpose:** Look across all claims in the graph and identify questions the corpus doesn't answer. Cross-reference with Web IQ to score novelty.
+**Purpose:** Look across all claims in the graph and identify questions the corpus doesn't answer. Cross-reference with Semantic Scholar to score novelty.
 
 **Trigger:** Runs after Comparator finishes. Re-runs on every new paper.
-**Input:** Full claim graph from Neo4j + Web IQ search
+**Input:** Full claim graph from Neo4j + Semantic Scholar API search
 **Output:** `OpenQuestion` nodes written to Neo4j
 
 ```python
@@ -127,9 +127,9 @@ src/
 {
     "id": "uuid",
     "question": "str",
-    "novelty_score": 0.0–1.0,   # How unexplored this is (Web IQ informed)
+    "novelty_score": 0.0–1.0,   # How unexplored this is (Semantic Scholar informed)
     "related_claim_ids": ["str"],
-    "web_evidence": "str",       # What Web IQ found (or didn't find)
+    "web_evidence": "str",       # What Semantic Scholar found (or didn't find)
     "status": "open|partially_answered|resolved"
 }
 ```

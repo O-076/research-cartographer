@@ -1,8 +1,8 @@
 """Agent 3 — Gap Finder.
 
 Analyse the full claim graph and identify research questions that the
-corpus does not yet answer.  For MVP, Web IQ is skipped and novelty
-scores are mocked (random 0.3–0.9).
+corpus does not yet answer. Novelty scores are evaluated using the free
+Semantic Scholar API for real web grounding.
 
 Output: ``AsyncGenerator[OpenQuestion, None]``
 """

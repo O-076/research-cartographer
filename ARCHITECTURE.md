@@ -97,8 +97,8 @@ This reduces LLM calls by ~80%.
 1. Fetch all Concept nodes from Neo4j
 2. For each concept pair (C1, C2) with no bridging claims:
    a. Generate a potential research question: "What is the relationship between C1 and C2?"
-   b. Query Web IQ: "research on [C1] AND [C2]"
-   c. If Web IQ finds <3 relevant papers: novelty_score += 0.3
+   b. Query Semantic Scholar: "research on [C1] AND [C2]"
+   c. If Semantic Scholar finds <3 relevant papers: novelty_score += 0.3
    d. If no direct papers found: novelty_score = 0.9+
 3. Write OpenQuestion nodes for gaps with novelty_score > 0.5
 ```
@@ -257,7 +257,7 @@ ws.onmessage = (event) => {
         → emits "node_added" events
       → [Comparator] queries Neo4j, writes Edges to Neo4j
         → emits "edge_added"/"edge_updated" events
-      → [Gap Finder] queries Neo4j + Web IQ, writes OpenQuestions
+      → [Gap Finder] queries Neo4j + Semantic Scholar, writes OpenQuestions
         → emits "question_added"/"question_resolved" events
   → [DeltaEmitter] pushes events to all WebSocket connections
     → [Frontend D3.js] adds/updates nodes/edges with animations
@@ -279,9 +279,7 @@ AZURE_OPENAI_KEY=                  # Azure OpenAI API key
 AZURE_OPENAI_DEPLOYMENT=           # Deployment name (e.g. gpt-4o)
 AZURE_OPENAI_EMBEDDING_DEPLOYMENT= # e.g. text-embedding-3-large
 
-# Web IQ
-AZURE_WEB_IQ_ENDPOINT=
-AZURE_WEB_IQ_KEY=
+# Semantic Scholar (No keys required)
 
 # Neo4j
 NEO4J_URI=                         # e.g. neo4j+s://xxx.databases.neo4j.io

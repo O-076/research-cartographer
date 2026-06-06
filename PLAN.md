@@ -24,7 +24,7 @@ The key insight: most AI tools *summarize* papers. We *reason across* them. The 
 ### Microsoft Technology Alignment
 
 - **Foundry IQ** — core knowledge base, directly integrated
-- **Web IQ** — used by Gap Finder for novelty scoring
+- **Semantic Scholar API** — used by Gap Finder for novelty scoring (free web grounding)
 - **A2A Protocol** — just went GA at Build 2026, we're an early adopter showcase
 - **Microsoft Agent Framework 1.0** — GA, production-grade, exactly what judges want to see
 - **Azure Container Apps** — deployment stays in the Microsoft ecosystem
@@ -66,7 +66,7 @@ The demo video must capture this specific moment:
 ### In Scope (Stretch — add if time allows)
 
 - Gap Finder Agent (open question discovery)
-- Web IQ novelty scoring
+- Semantic Scholar API novelty scoring
 - "Tension cluster" visual highlighting
 - Paper search within the graph
 - Export graph as JSON
@@ -134,7 +134,7 @@ What we look like:
 - [ ] All source code present and runnable from README instructions
 - [ ] `.env.example` with all required variables (no real values)
 - [ ] Demo video uploaded (max 3 minutes)
-- [ ] At least Foundry IQ integrated (Web IQ is bonus)
+- [ ] At least Foundry IQ integrated (Semantic Scholar API for web grounding is bonus)
 - [ ] A2A protocol used for agent coordination
 - [ ] No secrets, PII, or confidential info in repo (see SECURITY.md)
 - [ ] No confidential information anywhere (see Microsoft DISCLAIMER)
