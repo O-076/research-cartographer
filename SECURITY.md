@@ -1,4 +1,4 @@
-# 🔐 SECURITY.md — Security Guidelines
+# 🔐 SECURITY.md: Security Guidelines
 
 > **Read this before every `git push`.** This is a public repository.
 > Violations result in disqualification from the hackathon per Microsoft's Disclaimer.
@@ -17,8 +17,8 @@ Per the [Microsoft Agents League Disclaimer](https://aka.ms/AgentsLeague_Disclai
 
 | Category | Examples | Risk |
 |----------|---------|------|
-| **Credentials & Secrets** | API keys, tokens, passwords, connection strings | Critical — immediate breach |
-| **Personal Data (PII)** | Names, emails, phone numbers, addresses, IDs | High — compliance violation |
+| **Credentials & Secrets** | API keys, tokens, passwords, connection strings | Critical (immediate breach) |
+| **Personal Data (PII)** | Names, emails, phone numbers, addresses, IDs | High (compliance violation) |
 | **Customer Data** | Any data belonging to real users or organizations | High |
 | **Proprietary Code** | Code owned by an employer, client, or third party | High |
 | **Pre-release Info** | Anything under NDA | Medium |
@@ -39,7 +39,7 @@ git diff --cached | grep -E "(key|secret|password|token|api_key)" -i
 
 # 3. Verify .env is NOT staged
 git status | grep ".env$"
-# If it appears — unstage it immediately:
+# If it appears, unstage it immediately:
 git reset HEAD .env
 ```
 
@@ -50,7 +50,7 @@ git reset HEAD .env
 Do NOT just delete the secret in a new commit. Git history preserves it.
 
 ```bash
-# Remove the file from all history (nuclear option — coordinate with team)
+# Remove the file from all history (nuclear option: coordinate with team)
 git filter-branch --force --index-filter \
   'git rm --cached --ignore-unmatch .env' \
   --prune-empty --tag-name-filter cat -- --all
@@ -76,12 +76,12 @@ api_key = os.getenv("AZURE_OPENAI_KEY")
 ```
 
 ```bash
-# In .env (gitignored — never committed)
+# In .env (gitignored, never committed)
 AZURE_OPENAI_KEY=your-real-key-here
 ```
 
 ```bash
-# In .env.example (committed — template only)
+# In .env.example (committed template only)
 AZURE_OPENAI_KEY=
 ```
 

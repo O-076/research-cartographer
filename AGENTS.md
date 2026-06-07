@@ -1,7 +1,7 @@
-# 🤖 AGENTS.md — Instructions for AI Coding Agents
+# 🤖 AGENTS.md: Instructions for AI Coding Agents
 
 > This file is the primary seed for AI coding agents (Claude Code, GitHub Copilot, Codex, Cursor, etc.).
-> Read this file fully before writing a single line of code. It contains all decisions already made — do not revisit them.
+> Read this file fully before writing a single line of code. It contains all decisions already made; do not revisit them.
 
 ---
 
@@ -9,7 +9,7 @@
 
 **Research Cartographer** is a multi-agent system submitted to the Microsoft Agents League Hackathon 2026 (Reasoning Agents track). It ingests scientific PDFs, reasons across them using 4 coordinated AI agents, and produces a live D3.js force-directed knowledge graph streamed via WebSocket.
 
-**Deadline:** June 14, 2026 · 11:59 PM PT — velocity matters.
+**Deadline:** June 14, 2026 · 11:59 PM PT (velocity matters).
 
 ---
 
@@ -17,16 +17,16 @@
 
 These decisions are final. Do not suggest alternatives.
 
-- **Agent framework:** Microsoft Agent Framework 1.0 — not LangChain, not CrewAI
-- **Agent coordination:** A2A Protocol — not custom message passing
-- **Knowledge base:** Azure AI Foundry IQ — not a custom vector store
-- **Web grounding:** Semantic Scholar API — not Web IQ (limited access)
-- **Graph DB:** Neo4j — not a plain dict or NetworkX (though NetworkX may be used for local testing)
-- **Backend:** FastAPI — not Flask, not Django
-- **Frontend graph:** D3.js v7 force-directed — not Cytoscape.js, not vis.js
+- **Agent framework:** Microsoft Agent Framework 1.0 (do not use LangChain or CrewAI)
+- **Agent coordination:** A2A Protocol (do not use custom message passing)
+- **Knowledge base:** Azure AI Foundry IQ (do not use a custom vector store)
+- **Web grounding:** OpenAlex API (Semantic Scholar rate limits shared IPs too heavily for Hackathon environments)
+- **Graph DB:** Neo4j (do not use a plain dict; NetworkX is acceptable for local testing only)
+- **Backend:** FastAPI (do not use Flask or Django)
+- **Frontend graph:** D3.js v7 force-directed (do not use Cytoscape.js or vis.js)
 - **PDF parsing:** PyMuPDF (fitz) primary, pdfplumber fallback for complex layouts
-- **Embeddings:** `text-embedding-3-large` via Azure OpenAI — not ada-002
-- **All secrets via .env** — never hardcoded, never committed
+- **Embeddings:** `text-embedding-3-large` via Azure OpenAI (do not use ada-002)
+- **All secrets via .env:** Never hardcode or commit credentials
 
 ---
 
@@ -65,7 +65,7 @@ src/
 
 ## 🧠 Agent Definitions
 
-### Agent 1 — Extractor (`src/agents/extractor.py`)
+### Agent 1: Extractor (`src/agents/extractor.py`)
 
 **Purpose:** Given a paper's chunks from Foundry IQ, extract structured claims.
 
@@ -89,7 +89,7 @@ src/
 
 ---
 
-### Agent 2 — Comparator (`src/agents/comparator.py`)
+### Agent 2: Comparator (`src/agents/comparator.py`)
 
 **Purpose:** Given any two claims, determine their relationship and write a typed edge.
 
@@ -110,16 +110,16 @@ src/
 }
 ```
 
-**Key behavior:** When a new paper is added, existing edges are NOT deleted — they are re-scored. The graph is additive.
+**Key behavior:** When a new paper is added, existing edges are NOT deleted; they are re-scored. The graph is additive.
 
 ---
 
-### Agent 3 — Gap Finder (`src/agents/gap_finder.py`)
+### Agent 3: Gap Finder (`src/agents/gap_finder.py`)
 
-**Purpose:** Look across all claims in the graph and identify questions the corpus doesn't answer. Cross-reference with Semantic Scholar to score novelty.
+**Purpose:** Look across all claims in the graph and identify questions the corpus doesn't answer. Cross-reference with OpenAlex API to score novelty.
 
 **Trigger:** Runs after Comparator finishes. Re-runs on every new paper.
-**Input:** Full claim graph from Neo4j + Semantic Scholar API search
+**Input:** Full claim graph from Neo4j + OpenAlex API search
 **Output:** `OpenQuestion` nodes written to Neo4j
 
 ```python
@@ -127,9 +127,9 @@ src/
 {
     "id": "uuid",
     "question": "str",
-    "novelty_score": 0.0–1.0,   # How unexplored this is (Semantic Scholar informed)
+    "novelty_score": 0.0–1.0,   # How unexplored this is (OpenAlex API informed)
     "related_claim_ids": ["str"],
-    "web_evidence": "str",       # What Semantic Scholar found (or didn't find)
+    "web_evidence": "str",       # What OpenAlex found (or didn't find)
     "status": "open|partially_answered|resolved"
 }
 ```
@@ -138,7 +138,7 @@ src/
 
 ---
 
-### Agent 4 — Cartographer (`src/agents/cartographer.py`)
+### Agent 4: Cartographer (`src/agents/cartographer.py`)
 
 **Purpose:** A2A orchestrator. Coordinates the other three agents, maintains pipeline state, decides when re-analysis is needed.
 
@@ -147,7 +147,7 @@ src/
 - Dispatch Extractor → await completion → dispatch Comparator → await completion → dispatch Gap Finder
 - Emit graph delta events at each stage via `delta_emitter.py`
 - Track pipeline state per paper (queued / extracting / comparing / gap_finding / complete)
-- Handle failures gracefully — partial results are still pushed to graph
+- Handle failures gracefully: partial results are still pushed to the graph
 
 **State machine per paper:**
 ```
@@ -195,10 +195,10 @@ The frontend ONLY uses WebSocket deltas after initial load. Never re-fetch the f
 ## 🗄️ Neo4j Graph Schema
 
 ### Node Labels
-- `:Paper` — `{id, title, authors, year, abstract}`
-- `:Claim` — `{id, paper_id, text, type, confidence, section}`
-- `:Concept` — `{id, name, embedding}` — auto-extracted shared themes
-- `:OpenQuestion` — `{id, question, novelty_score, status}`
+- `:Paper`: `{id, title, authors, year, abstract}`
+- `:Claim`: `{id, paper_id, text, type, confidence, section}`
+- `:Concept`: `{id, name, embedding}` (auto-extracted shared themes)
+- `:OpenQuestion`: `{id, question, novelty_score, status}`
 
 ### Relationship Types
 - `(:Claim)-[:SUPPORTS]→(:Claim)`
@@ -212,7 +212,7 @@ The frontend ONLY uses WebSocket deltas after initial load. Never re-fetch the f
 
 ---
 
-## 🌊 Async Pipeline (Critical — Read This)
+## 🌊 Async Pipeline (Critical: Read This)
 
 The async behavior is the #1 visual differentiator. Implement it correctly.
 
@@ -267,7 +267,7 @@ Use `asyncio.Queue` for the pipeline. Do not use threading.
 - Unit test each agent with 2–3 mock papers (include test PDFs in `tests/fixtures/`)
 - Test WebSocket delta stream with a mock pipeline
 - Test Neo4j queries with an in-memory Neo4j or mocked driver
-- Do NOT write tests before the feature exists — test as you build
+- Do NOT write tests before the feature exists. Test as you build
 
 ---
 
@@ -275,8 +275,8 @@ Use `asyncio.Queue` for the pipeline. Do not use threading.
 
 See [SECURITY.md](SECURITY.md) for full details. Summary:
 
-- All credentials in `.env` only — never in code, never in comments
-- `.env` is gitignored — use `.env.example` with placeholder values
+- All credentials in `.env` only. Never in code, never in comments.
+- `.env` is gitignored. Use `.env.example` with placeholder values.
 - No PII, no customer data, no internal Microsoft info
 - Run `git diff --cached` before every commit to check for secrets
 - If you accidentally stage a secret: `git reset HEAD <file>` immediately
@@ -303,10 +303,10 @@ NEO4J_PASSWORD=
 
 When choosing what to build next, follow this priority order:
 
-1. **Working pipeline first** — PDF in, claims in Neo4j, even if ugly
-2. **WebSocket streaming second** — the live graph is the demo
-3. **D3.js visualization third** — the wow factor
-4. **Gap Finder last** — most complex, least critical for MVP
+1. **Working pipeline first:** PDF in, claims in Neo4j, even if ugly
+2. **WebSocket streaming second:** The live graph is the demo
+3. **D3.js visualization third:** The visual impact
+4. **Gap Finder last:** Most complex, least critical for MVP
 
 If time is short, a working Extractor + Comparator + live D3 graph is a complete, submittable demo.
 

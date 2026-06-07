@@ -371,11 +371,26 @@ def _required_env(name: str) -> str:
 
 
 def _strip_markdown_fences(text: str) -> str:
-    """Remove ```json ... ``` fences from LLM responses."""
-    stripped = text.strip()
-    if stripped.startswith("```"):
-        first_newline = stripped.index("\n")
-        stripped = stripped[first_newline + 1 :]
-    if stripped.endswith("```"):
-        stripped = stripped[:-3]
-    return stripped.strip()
+    """Remove ```json ... ``` fences and conversational filler from LLM responses."""
+    text = text.strip()
+    
+    # Fast path if it's already a clean block
+    if text.startswith("{") and text.endswith("}"):
+        return text
+    if text.startswith("[") and text.endswith("]"):
+        return text
+        
+    import re
+    # Match everything between ```json and ```
+    match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, flags=re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+        
+    # If no fences but starts with { somewhere
+    start_idx = text.find("{")
+    if start_idx != -1:
+        end_idx = text.rfind("}")
+        if end_idx > start_idx:
+            return text[start_idx:end_idx + 1]
+            
+    return text.strip()

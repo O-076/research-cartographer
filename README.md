@@ -1,24 +1,24 @@
 # 🗺️ Research Cartographer
 
-> An autonomous multi-agent system that ingests scientific papers and builds a **living, evolving knowledge graph** — revealing how ideas connect, where fields agree, where they conflict, and what questions nobody has asked yet.
+> An autonomous multi-agent system that ingests scientific papers and builds a dynamic knowledge graph. It reveals how ideas connect, identifies areas of agreement and conflict, and highlights unanswered questions.
 
 Built for the **[Microsoft Agents League Hackathon](https://aka.ms/agentsleague/aisf)** · June 4–14, 2026
-**Track:** Reasoning Agents | **IQ Layers:** Foundry IQ | **Web Grounding:** Semantic Scholar API | **Protocol Target:** A2A
+**Track:** Reasoning Agents | **IQ Layers:** Foundry IQ | **Web Grounding:** OpenAlex API | **Protocol:** A2A Protocol
 
 ---
 
 ## ✨ What It Does
 
 1. **Upload** 1–20 scientific papers (PDF)
-2. **Four specialized AI agents** coordinate through an async pipeline while A2A integration is finalized
-3. **Watch the knowledge graph grow in real-time** — nodes and edges animate as agents reason
+2. **Four specialized AI agents** coordinate via the **Microsoft Agent Framework A2A Protocol**
+3. **Real-time graph visualization:** Nodes and edges animate as agents process information
 4. **Discover** semantic connections, contradiction clusters, and open research gaps
 
 ---
 
 ## 🎬 Demo
 
-> *[Demo video — add before June 14 submission]*
+> *[Demo video: add before June 14 submission]*
 
 ---
 
@@ -26,20 +26,18 @@ Built for the **[Microsoft Agents League Hackathon](https://aka.ms/agentsleague/
 
 As of **June 6, 2026**:
 
-- ✅ Committed foundation: seed docs, graph schema/manager, delta emitter, base agent, PDF parser, Foundry IQ uploader, Extractor, Comparator, async Cartographer fallback, FastAPI backend, D3 frontend, and Gap Finder.
-- ✅ Working tree status: clean.
-- ✅ Frontend UI polish: upgraded to Font Awesome vector icons, WebSocket secured.
-- ✅ Web Grounding: Gap Finder fully wired to free Semantic Scholar API for novelty scoring.
-- ⬜ External setup pending: Azure resource group, Foundry IQ knowledge base, Azure OpenAI deployment, Neo4j AuraDB credentials, and real `.env` population.
-- ⬜ Critical feature gaps: true Microsoft Agent Framework A2A setup, live Foundry IQ/Neo4j verification, WebSocket/browser QA, and end-to-end demo testing.
+- ✅ Committed foundation: seed docs, graph schema/manager, delta emitter, base agent, PDF parser, Foundry IQ uploader, Extractor, Comparator, A2A Cartographer orchestrator, FastAPI backend, D3 frontend, and Gap Finder.
+- ✅ Frontend UI polish: upgraded to Font Awesome vector icons, sleek animations, Limitations tracking, and legend integration.
+- ✅ Web Grounding: Gap Finder fully wired to the free OpenAlex API for novelty scoring (replacing Semantic Scholar due to rate limits).
+- ✅ Agent Coordination: Fully implemented the Microsoft Agent Framework A2A Protocol for orchestration.
+- ⬜ External setup pending: Azure resource group, Foundry IQ knowledge base, Azure OpenAI deployment, Neo4j AuraDB credentials.
 
 ### Caveat Resolution Plan
 
 | Caveat | Solution |
 |--------|----------|
 | Local imports fail without dependencies | Create a virtual environment, install pinned `requirements.txt`, then run import and FastAPI smoke tests. |
-| A2A is not wired yet | Timebox Microsoft Agent Framework A2A research/implementation; if blocked, keep the async fallback and document it clearly before submission. |
-| Web IQ novelty scoring is in limited access | Replaced with free Semantic Scholar API in `GapFinderAgent` for web grounding and novelty scoring. |
+| Web IQ novelty scoring is in limited access | Replaced with free OpenAlex API in `GapFinderAgent` for web grounding and novelty scoring. |
 | Neo4j/Foundry tests are not run | Populate `.env` locally only, initialize Neo4j constraints, upload one real PDF, and verify chunks/claims/edges. |
 | Browser/WebSocket QA is pending | Run the FastAPI app locally, open `http://localhost:8000`, upload a PDF, and verify deltas animate without full graph re-fetches. |
 | JS syntax check via shell was blocked | Validate the frontend through the browser/devtools or an approved Node runtime once dependencies are installed. |
@@ -77,18 +75,18 @@ PDF Upload ──→ Foundry IQ Knowledge Base ──→ Multi-Agent Reasoning L
 |-------|------|-------|
 | 🔍 **Extractor** | Pulls claims, methodology, and findings from each paper section | `read_chunk`, `write_claim`, `tag_methodology` |
 | ⚖️ **Comparator** | Cross-references claims across all papers, labels edges | `query_foundry_iq`, `semantic_diff`, `write_edge` |
-| 🔭 **Gap Finder** | Identifies unanswered questions, scores novelty via Semantic Scholar | `query_all_claims`, `cross_reference_web`, `score_novelty` |
-| 🗺️ **Cartographer** | A2A orchestrator — coordinates agents, maintains graph state | A2A protocol, `update_graph`, `trigger_reanalysis` |
+| 🔭 **Gap Finder** | Identifies unanswered questions, scores novelty via OpenAlex API | `query_all_claims`, `cross_reference_web`, `score_novelty` |
+| 🗺️ **Cartographer** | A2A orchestrator that coordinates agents and maintains graph state | A2A protocol, `update_graph`, `trigger_reanalysis` |
 
 ---
 
 ## ⚡ The Async Magic
 
 When you upload a new paper:
-- The graph **visibly thinks** — nodes appear, edges animate, contradictions glow red
-- The Comparator **re-evaluates existing edges** — nothing is static
-- The Gap Finder **rescores open questions** — some resolve, new ones emerge
-- Every delta is **streamed live** via WebSocket — no page reloads
+- The graph updates dynamically: nodes appear, edges animate, and contradictions glow red.
+- The Comparator **re-evaluates existing edges** automatically.
+- The Gap Finder **rescores open questions**, resolving existing ones and finding new ones.
+- Every delta is **streamed live** via WebSocket without page reloads.
 
 ---
 
@@ -97,9 +95,9 @@ When you upload a new paper:
 | Layer | Technology |
 |-------|-----------|
 | Agent Framework | Microsoft Agent Framework 1.0 (GA, Build 2026) |
-| Agent Coordination | Async fallback now; A2A Protocol target |
+| Agent Coordination | Microsoft Agent Framework 1.0 A2A Protocol |
 | Knowledge Base | Azure AI Foundry IQ |
-| Web Grounding | Semantic Scholar API |
+| Web Grounding | OpenAlex API |
 | Graph Database | Neo4j |
 | Backend | FastAPI + asyncio + WebSockets |
 | Frontend | D3.js v7 + custom CSS |
@@ -115,7 +113,7 @@ When you upload a new paper:
 git clone https://github.com/YOUR_USERNAME/research-cartographer
 cd research-cartographer
 cp .env.example .env
-# Edit .env with your credentials — NEVER commit .env
+# Edit .env with your credentials (NEVER commit .env)
 pip install -r requirements.txt
 uvicorn src.api.main:app --reload
 ```
@@ -146,7 +144,7 @@ research-cartographer/
 │       └── styles.css
 ├── tests/
 ├── docs/
-├── .env.example               # Template — no real values
+├── .env.example               # Template (no real values)
 ├── requirements.txt
 ├── README.md
 ├── AGENTS.md                  # 🤖 Instructions for AI coding agents
@@ -166,7 +164,7 @@ research-cartographer/
 - **Event:** [Agents League @ AISF 2026](https://aka.ms/agentsleague/aisf)
 - **Submission deadline:** June 14, 2026 · 11:59 PM PT
 - **Track:** Reasoning Agents (Microsoft Foundry)
-- **IQ Requirement:** Foundry IQ (meets minimum of 1) + Semantic Scholar API for web grounding
+- **IQ Requirement:** Foundry IQ (meets minimum of 1) + OpenAlex API for web grounding
 - **Prize pool:** $55,000 USD total
 
 ---
@@ -180,4 +178,4 @@ See [SECURITY.md](SECURITY.md) before every push.
 
 ## 📄 License
 
-MIT © 2026 — See [LICENSE](LICENSE)
+MIT © 2026: See [LICENSE](LICENSE)

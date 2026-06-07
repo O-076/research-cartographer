@@ -238,14 +238,46 @@ html, body {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
+    cursor: default;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.stat:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .stat-icon {
-    font-size: 13px;
+    font-size: 14px;
+}
+
+.stat-label {
+    display: inline-block;
+    vertical-align: middle;
+    font-weight: 500;
+    color: var(--text-muted);
+    
+    /* Hover animation base */
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    margin-left: 0;
+    transition: max-width 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.2), 
+                opacity 0.3s ease, 
+                margin-left 0.3s ease;
+}
+
+.stat:hover .stat-label {
+    max-width: 120px;
+    opacity: 1;
+    margin-left: 6px;
 }
 
 /* ─── Main Content ─── */

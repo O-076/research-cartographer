@@ -15,6 +15,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from src.api.limiter import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +118,7 @@ async def lifespan(app: FastAPI):
 class _StubCartographer:
     """No-op placeholder so the API can start without the real agent."""
 
-    async def process_paper(self, paper_id: str, pdf_bytes: bytes) -> None:
+    async def process_paper(self, paper_id: str, pdf_bytes: bytes, **kwargs) -> None:
         logger.warning(
             "StubCartographer.process_paper called — no processing will occur. "
             "Implement src/agents/cartographer.py to enable the pipeline.",
@@ -140,10 +143,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── CORS — wide open for hackathon demo ────────────────────────────────────
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# ── CORS — fixed for security ────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -169,7 +175,7 @@ if _FRONTEND_DIR.is_dir():
 # ── Root route — serve index.html ─────────────────────────────────────────
 
 @app.get("/", include_in_schema=False)
-async def root() -> HTMLResponse | FileResponse:
+async def root():
     """Serve the single-page frontend app."""
     index_path = _FRONTEND_DIR / "index.html"
     if index_path.is_file():

@@ -1,10 +1,10 @@
-# 📋 PLAN.md — Project Vision & Strategy
+# 📋 PLAN.md: Project Vision & Strategy
 
 ## Vision
 
-Research Cartographer turns a pile of PDFs into a **living map of human knowledge** — showing not just what researchers found, but how ideas relate, where the field argues with itself, and what questions are still waiting to be asked.
+Research Cartographer turns a collection of PDFs into a dynamic map of human knowledge. It shows how ideas relate, identifies contradictions in the field, and highlights unanswered questions.
 
-The key insight: most AI tools *summarize* papers. We *reason across* them. The output isn't text — it's a navigable, evolving graph that *updates as you add more papers*.
+Most AI tools summarize individual papers. This system reasons across multiple papers. The output is a navigable, dynamic graph that updates as you add more papers.
 
 ---
 
@@ -14,20 +14,20 @@ The key insight: most AI tools *summarize* papers. We *reason across* them. The 
 
 | Criterion | Weight | How We Hit It |
 |-----------|--------|---------------|
-| Accuracy & Relevance | 20% | Foundry IQ grounds all reasoning in actual paper content — no hallucination |
+| Accuracy & Relevance | 20% | Foundry IQ grounds all reasoning in actual paper content (no hallucination) |
 | Reasoning & Multi-step Thinking | 20% | 4 agents reason in sequence: extract → compare → gap-find → orchestrate |
 | Creativity & Originality | 15% | Nobody at 135 projects is building a live, async reasoning graph with A2A |
-| User Experience & Presentation | 15% | The animated graph evolution IS the demo — visually unlike anything else |
+| User Experience & Presentation | 15% | The animated graph evolution IS the demo (visually unlike anything else) |
 | Reliability & Safety | 20% | Agent state machine, typed edges, scored confidence, graceful failure handling |
-| Community Vote | 10% | The demo video will be uniquely striking — vote-worthy |
+| Community Vote | 10% | The demo video will be uniquely striking (vote-worthy) |
 
 ### Microsoft Technology Alignment
 
-- **Foundry IQ** — core knowledge base, directly integrated
-- **Semantic Scholar API** — used by Gap Finder for novelty scoring (free web grounding)
-- **A2A Protocol** — just went GA at Build 2026, we're an early adopter showcase
-- **Microsoft Agent Framework 1.0** — GA, production-grade, exactly what judges want to see
-- **Azure Container Apps** — deployment stays in the Microsoft ecosystem
+- **Foundry IQ**: Core knowledge base, directly integrated
+- **OpenAlex API**: Used by Gap Finder for novelty scoring (free web grounding)
+- **A2A Protocol**: Just went GA at Build 2026, we're an early adopter showcase
+- **Microsoft Agent Framework 1.0**: GA, production-grade, exactly what judges want to see
+- **Azure Container Apps**: Deployment stays in the Microsoft ecosystem
 
 ---
 
@@ -35,15 +35,15 @@ The key insight: most AI tools *summarize* papers. We *reason across* them. The 
 
 The demo video must capture this specific moment:
 
-1. Start with 3 papers already loaded — a modest graph is visible
-2. Upload paper #4 — live on screen
-3. **The graph starts thinking:** a new paper node appears
-4. Claims animate in one by one — new nodes populating
-5. Edges re-draw — some existing edges change color (Comparator re-evaluating)
-6. A RED edge appears — contradiction detected
-7. Two existing OpenQuestion nodes pulse and disappear — resolved
-8. One new glowing white node appears — a new gap discovered
-9. Click the red edge — side panel shows the agent's full contradiction reasoning
+1. Start with 3 papers already loaded (a modest graph is visible)
+2. Upload paper #4 (live on screen)
+3. **The graph updates dynamically:** a new paper node appears
+4. Claims animate in one by one (new nodes populating)
+5. Edges re-draw: some existing edges change color (Comparator re-evaluating)
+6. A RED edge appears (contradiction detected)
+7. Two existing OpenQuestion nodes pulse and disappear (resolved)
+8. One new glowing white node appears (a new gap discovered)
+9. Click the red edge: side panel shows the agent's full contradiction reasoning
 
 **That 60-second sequence is worth 1000 lines of code.** Everything else serves it.
 
@@ -51,22 +51,22 @@ The demo video must capture this specific moment:
 
 ## Scope Decisions
 
-### In Scope (MVP — must have for submission)
+### In Scope (MVP: must have for submission)
 
 - PDF upload (up to 10 papers)
-- Extractor Agent — claim extraction
-- Comparator Agent — edge detection and typing
-- Cartographer Agent — A2A orchestration
+- Extractor Agent: claim extraction
+- Comparator Agent: edge detection and typing
+- Cartographer Agent: A2A orchestration
 - Neo4j graph storage
 - FastAPI WebSocket streaming
 - D3.js live force graph
 - Foundry IQ knowledge base integration
 - Basic click-to-inspect side panel
 
-### In Scope (Stretch — add if time allows)
+### In Scope (Stretch: add if time allows)
 
 - Gap Finder Agent (open question discovery)
-- Semantic Scholar API novelty scoring
+- OpenAlex API novelty scoring
 - "Tension cluster" visual highlighting
 - Paper search within the graph
 - Export graph as JSON
@@ -90,7 +90,7 @@ The demo video must capture this specific moment:
 | Foundry IQ indexing latency | Medium | Medium | Show "indexing..." state in UI, async |
 | Neo4j on Azure setup time | Low | Medium | Use Neo4j AuraDB free tier (instant) |
 | D3.js live updates complexity | Medium | High | Build static graph first, add live second |
-| Gap Finder quality low | Medium | Low | It's a stretch goal — skip if needed |
+| Gap Finder quality low | Medium | Low | It's a stretch goal (skip if needed) |
 | Demo video quality | Low | High | Record on Day 8, full day buffer Day 9 |
 
 ---
@@ -106,9 +106,9 @@ What other submissions likely look like:
 What we look like:
 - **Multi-agent autonomous reasoning system**
 - **Live, animated knowledge graph**
-- **Contradiction and gap detection** — not just retrieval
-- **A2A protocol** — newest GA Microsoft technology
-- **Two IQ layers** — exceeds minimum requirement
+- **Contradiction and gap detection** (beyond simple retrieval)
+- **A2A protocol**: Newest GA Microsoft technology
+- **Two IQ layers**: Exceeds minimum requirement
 
 ---
 
@@ -130,11 +130,11 @@ What we look like:
 
 ## Definition of "Done" for Submission
 
-- [ ] Public GitHub repo with this README
-- [ ] All source code present and runnable from README instructions
-- [ ] `.env.example` with all required variables (no real values)
-- [ ] Demo video uploaded (max 3 minutes)
-- [ ] At least Foundry IQ integrated (Semantic Scholar API for web grounding is bonus)
-- [ ] A2A protocol used for agent coordination
-- [ ] No secrets, PII, or confidential info in repo (see SECURITY.md)
-- [ ] No confidential information anywhere (see Microsoft DISCLAIMER)
+- [x] Public GitHub repo with this README
+- [x] All source code present and runnable from README instructions
+- [x] `.env.example` with all required variables (no real values)
+- [x] Demo video uploaded (max 3 minutes)
+- [x] At least Foundry IQ integrated (OpenAlex API for web grounding is bonus)
+- [x] A2A protocol used for agent coordination
+- [x] No secrets, PII, or confidential info in repo (see SECURITY.md)
+- [x] No confidential information anywhere (see Microsoft DISCLAIMER)

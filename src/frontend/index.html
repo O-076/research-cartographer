@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Research Cartographer — Knowledge Graph</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg" />
 
     <!-- Google Font: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -20,7 +21,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
     <!-- Our styles -->
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=3" />
 </head>
 <body>
     <!-- ─── Ambient background particles (CSS animated) ─── -->
@@ -54,10 +55,13 @@
                 <span class="ws-label">Disconnected</span>
             </div>
             <div class="graph-stats">
-                <span class="stat" title="Papers"><span class="stat-icon"><i class="fa-solid fa-file-lines"></i></span> <span id="stat-papers">0</span></span>
-                <span class="stat" title="Claims"><span class="stat-icon"><i class="fa-solid fa-lightbulb"></i></span> <span id="stat-claims">0</span></span>
-                <span class="stat" title="Edges"><span class="stat-icon"><i class="fa-solid fa-link"></i></span> <span id="stat-edges">0</span></span>
-                <span class="stat" title="Questions"><span class="stat-icon"><i class="fa-solid fa-circle-question"></i></span> <span id="stat-questions">0</span></span>
+                <span class="stat"><span class="stat-icon"><i class="fa-solid fa-file-lines"></i></span> <span id="stat-papers">0</span><span class="stat-label">Papers</span></span>
+                <span class="stat"><span class="stat-icon"><i class="fa-solid fa-lightbulb"></i></span> <span id="stat-claims">0</span><span class="stat-label">Claims</span></span>
+                <span class="stat"><span class="stat-icon"><i class="fa-solid fa-link"></i></span> <span id="stat-edges">0</span><span class="stat-label">Edges</span></span>
+                <span class="stat"><span class="stat-icon"><i class="fa-solid fa-circle-question"></i></span> <span id="stat-questions">0</span><span class="stat-label">Questions</span></span>
+                <span class="stat"><span class="stat-icon"><i class="fa-solid fa-tags"></i></span> <span id="stat-concepts">0</span><span class="stat-label">Concepts</span></span>
+                <span class="stat"><span class="stat-icon"><i class="fa-solid fa-triangle-exclamation" style="color: #ff8c42;"></i></span> <span id="stat-limitations">0</span><span class="stat-label">Limitations</span></span>
+                <span class="stat"><span class="stat-icon"><i class="fa-solid fa-bolt" style="color: #ff4444;"></i></span> <span id="stat-contradictions">0</span><span class="stat-label">Contradictions</span></span>
             </div>
         </div>
     </header>
@@ -117,6 +121,7 @@
                 <div class="legend-item"><span class="legend-dot" style="background:#4a9eff"></span> Paper</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#00ff88"></span> Finding</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#ffd700"></span> Method</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#ff8c42"></span> Limitation</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#ff4444"></span> Contradiction</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#ffffff; box-shadow:0 0 6px #fff"></span> Question</div>
                 <div class="legend-item"><span class="legend-dot" style="background:#9b59b6"></span> Concept</div>
@@ -163,6 +168,6 @@
     <div id="toast-container" class="toast-container"></div>
 
     <!-- Graph JS -->
-    <script src="/static/graph.js"></script>
+    <script src="/static/graph.js?v=3"></script>
 </body>
 </html>

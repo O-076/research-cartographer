@@ -1,4 +1,4 @@
-# 🏆 CONTEXT.md — Hackathon Context & Constraints
+# 🏆 CONTEXT.md: Hackathon Context & Constraints
 
 > AI agents: this file gives you the full context of WHY this project exists and the external constraints it must satisfy. Every technical decision in this repo exists to win this hackathon.
 
@@ -21,7 +21,7 @@
 Build intelligent agents using **Microsoft Foundry** that solve complex problems through multi-step reasoning.
 
 **Key constraint:** All submissions must integrate at least one Microsoft IQ layer.
-**Our integration:** Foundry IQ (primary) + Semantic Scholar API (secondary for web grounding) — we exceed the minimum.
+**Our integration:** Foundry IQ (primary) + OpenAlex API (secondary for web grounding). We exceed the minimum.
 
 ---
 
@@ -29,10 +29,10 @@ Build intelligent agents using **Microsoft Foundry** that solve complex problems
 
 | IQ Layer | What It Is | How We Use It |
 |----------|-----------|---------------|
-| **Foundry IQ** | Managed knowledge layer — connects enterprise data for agentic retrieval | Primary knowledge base for all paper content; agents query it for grounded answers |
-| **Work IQ** | Microsoft 365 intelligence — emails, meetings, documents | Not used (enterprise focus, not relevant to our use case) |
+| **Foundry IQ** | Managed knowledge layer (connects enterprise data for agentic retrieval) | Primary knowledge base for all paper content; agents query it for grounded answers |
+| **Work IQ** | Microsoft 365 intelligence (emails, meetings, documents) | Not used (enterprise focus, not relevant to our use case) |
 | **Fabric IQ** | Semantic layer for structured business data | Not used (our data is unstructured PDFs) |
-| **Semantic Scholar API** | Real-time web grounding | Gap Finder uses it to verify novelty of discovered research gaps |
+| **OpenAlex API** | Real-time web grounding | Gap Finder uses it to verify novelty of discovered research gaps |
 
 ---
 
@@ -47,7 +47,7 @@ Projects are scored by Microsoft experts and product teams:
 | Creativity & Originality | 15% | Is this novel? Does it do something unexpected? |
 | User Experience & Presentation | 15% | Is the demo polished, clear, and compelling? Is the README good? |
 | Reliability & Safety | 20% | Does it handle errors gracefully? Are there obvious failure modes? Is the code solid? |
-| Community Vote | 10% | Discord poll — share project in Discord for votes |
+| Community Vote | 10% | Discord poll (share project in Discord for votes) |
 
 **Total: 100%**
 
@@ -76,7 +76,7 @@ These are Microsoft Reactor livestreams showing how experts approach each track:
 | Date | Track | Link |
 |------|-------|------|
 | Tue June 9, 9 AM PT | 🎨 Creative Apps | [Microsoft Reactor](https://aka.ms/agentsleague/aisf/battles) |
-| Wed June 10, 9 AM PT | 🧠 Reasoning Agents ← **our track** | [Microsoft Reactor](https://aka.ms/agentsleague/aisf/battles) |
+| Wed June 10, 9 AM PT | 🧠 Reasoning Agents (**our track**) | [Microsoft Reactor](https://aka.ms/agentsleague/aisf/battles) |
 | Thu June 11, 9 AM PT | 💼 Enterprise Agents | [Microsoft Reactor](https://aka.ms/agentsleague/aisf/battles) |
 
 **Watch the June 10 battle.** It may reveal patterns judges reward.
@@ -85,9 +85,9 @@ These are Microsoft Reactor livestreams showing how experts approach each track:
 
 ## Community & Support
 
-- **Discord:** [Agents League Arena](https://aka.ms/agentsleague/discord) — ask questions, share progress, vote for others
-- **Foundry Forum:** [Microsoft Foundry Developer Forum](https://aka.ms/foundry/forum) — for API/SDK errors
-- **IQ Series Learning:** [aka.ms/iq-series](https://aka.ms/iq-series) — video episodes + notebooks
+- **Discord:** [Agents League Arena](https://aka.ms/agentsleague/discord) (ask questions, share progress, vote for others)
+- **Foundry Forum:** [Microsoft Foundry Developer Forum](https://aka.ms/foundry/forum) (for API/SDK errors)
+- **IQ Series Learning:** [aka.ms/iq-series](https://aka.ms/iq-series) (video episodes + notebooks)
 
 ---
 
@@ -107,7 +107,7 @@ These are Microsoft Reactor livestreams showing how experts approach each track:
 As of June 5, 2026:
 - **135 projects** submitted so far
 - Common patterns in similar hackathons: chat interfaces, document Q&A bots, single-agent task runners
-- **Our differentiation:** multi-agent A2A coordination + live animated graph + contradiction/gap detection
+- **Our differentiation:** Multi-agent A2A coordination, live animated graph, and contradiction/gap detection.
 
 ---
 
@@ -115,7 +115,7 @@ As of June 5, 2026:
 
 - Hackathon registration: [aka.ms/agentsleague/aisf](https://aka.ms/agentsleague/aisf)
 - Foundry IQ docs: [learn.microsoft.com/azure/foundry/agents/concepts/what-is-foundry-iq](https://learn.microsoft.com/azure/foundry/agents/concepts/what-is-foundry-iq)
-- Web IQ docs: [learn.microsoft.com](https://learn.microsoft.com/azure/foundry) (Note: Not publicly available yet, swapped for Semantic Scholar)
+- Web IQ docs: [learn.microsoft.com](https://learn.microsoft.com/azure/foundry) (Note: Not publicly available yet, swapped for OpenAlex API)
 - Agent Framework: [aka.ms/agentframework](https://aka.ms/agentframework)
 - A2A Protocol: [aka.ms/a2a](https://aka.ms/a2a)
 - IQ Series GitHub: [github.com/microsoft/iq-series](https://github.com/microsoft/iq-series)

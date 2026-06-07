@@ -1,6 +1,6 @@
-# 📐 CONVENTIONS.md — Code Conventions
+# 📐 CONVENTIONS.md: Code Conventions
 
-> AI agents: follow these conventions in every file you write. Consistency matters for a hackathon — reviewers skim code fast.
+> AI agents: follow these conventions in every file you write. Consistency matters for a hackathon (reviewers skim code fast).
 
 ---
 
@@ -11,7 +11,7 @@
 - **Linter:** `ruff`
 - **Type hints:** required on all function signatures
 - **Docstrings:** Google style, one-line for simple functions, full for complex ones
-- **Imports:** stdlib first, third-party second, local third — separated by blank lines
+- **Imports:** stdlib first, third-party second, local third (separated by blank lines)
 
 ```python
 # ✅ Correct
@@ -68,9 +68,9 @@ Every Python file follows this order:
 
 ## Error Handling
 
-- **Never** use bare `except:` — always catch specific exceptions
+- **Never** use bare `except:` (always catch specific exceptions)
 - Log errors with context (paper_id, chunk_index, etc.)
-- Agents should **never crash the pipeline** — catch, log, continue
+- Agents should **never crash the pipeline**: catch, log, continue
 - Use custom exceptions for domain errors:
 
 ```python
@@ -83,11 +83,11 @@ class FoundryQueryError(Exception): pass
 
 ## Async Rules
 
-- All I/O is async — no blocking calls in async functions
+- All I/O is async (no blocking calls in async functions)
 - Use `asyncio.create_task()` for fire-and-forget pipeline steps
 - Use `asyncio.gather()` for parallel independent operations
-- Never use `time.sleep()` — use `asyncio.sleep()`
-- Never use `requests` — use `httpx.AsyncClient`
+- Never use `time.sleep()`. Use `asyncio.sleep()` instead.
+- Never use `requests`. Use `httpx.AsyncClient` instead.
 
 ---
 
@@ -117,13 +117,13 @@ Log levels:
 - Always request JSON output explicitly: `"Respond ONLY with valid JSON. No preamble."`
 - Always include the expected output schema in the prompt
 - Always validate parsed JSON against a Pydantic model before use
-- Log the raw LLM response at DEBUG level (never at INFO — too noisy)
+- Log the raw LLM response at DEBUG level (never at INFO; it is too noisy)
 
 ---
 
 ## D3.js / JavaScript Conventions
 
-- No build step, no npm — plain ES modules via CDN
+- No build step, no npm (plain ES modules via CDN)
 - `const` by default, `let` only when reassignment is needed, never `var`
 - Function names: `camelCase`
 - Event handlers: `on` + PascalCase noun (`onNodeClick`, `onEdgeUpdate`)
@@ -151,10 +151,10 @@ Keep commits small and focused. One logical change per commit.
 
 ## What Not to Do
 
-- ❌ No `print()` statements in production code — use `logger`
+- ❌ No `print()` statements in production code (use `logger`)
 - ❌ No hardcoded strings that should be constants
 - ❌ No synchronous HTTP calls in async code
 - ❌ No Cypher queries outside `graph_manager.py`
 - ❌ No direct Azure SDK calls outside the agent classes and uploaders
-- ❌ No `TODO` comments in committed code — add to TODO.md instead
-- ❌ No commented-out code committed — delete it
+- ❌ No `TODO` comments in committed code (add to TODO.md instead)
+- ❌ No commented-out code committed (delete it)

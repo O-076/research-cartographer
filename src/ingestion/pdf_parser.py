@@ -6,10 +6,14 @@ import logging
 import re
 from dataclasses import dataclass
 
-import fitz
-import pdfplumber
-
 logger = logging.getLogger(__name__)
+
+try:
+    import fitz
+except ImportError as exc:
+    logger.warning("Failed to import fitz (PyMuPDF): %s. Will use pdfplumber exclusively.", exc)
+    fitz = None
+import pdfplumber
 
 DEFAULT_MAX_CHUNK_TOKENS = 500
 DEFAULT_CHUNK_OVERLAP_TOKENS = 50
@@ -111,7 +115,7 @@ def parse_pdf_bytes(
 
     try:
         pages = _extract_pages_with_fitz(pdf_bytes)
-    except (RuntimeError, ValueError, fitz.FileDataError) as exc:
+    except (RuntimeError, ValueError, Exception) as exc:
         logger.warning(
             "PyMuPDF parsing failed; falling back to pdfplumber",
             extra={"paper_id": paper_id, "error": str(exc)},
@@ -137,6 +141,8 @@ def parse_pdf_bytes(
 
 
 def _extract_pages_with_fitz(pdf_bytes: bytes) -> list[_PageText]:
+    if fitz is None:
+        raise RuntimeError("fitz module is not available (DLL load failed).")
     document = fitz.open(stream=pdf_bytes, filetype="pdf")
     try:
         return [

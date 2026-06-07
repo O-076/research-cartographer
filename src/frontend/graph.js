@@ -20,11 +20,11 @@
         },
         graph: {
             // Force simulation
-            chargeStrength: -220,
+            chargeStrength: -300,
             linkDistance: 90,
             centerStrength: 0.04,
             collisionRadius: 30,
-            alphaDecay: 0.05,
+            alphaDecay: 0.04,
             velocityDecay: 0.35,
 
             // Node sizing
@@ -42,11 +42,11 @@
             method: "#ffd700",
             assumption: "#ffd700",
             limitation: "#ff8c42",
-            contradiction: "#ff4444",
-            question: "#ffffff",
-            concept: "#9b59b6",
+            contradiction: "#EF4444", // red-500
+            concept: "#8B5CF6",    // violet-500
+            question: "#F3F4F6",   // gray-100
             // Edges
-            supports: "#00ff88",
+            supports: "#10B981",
             contradicts: "#ff4444",
             extends: "#4a9eff",
             replicates: "#6b7280",
@@ -331,13 +331,16 @@
         });
     }
 
+    let renderTimeout = null;
     // ─── Render Graph ───
     function render(animate = false) {
-        recomputeDerivedFields();
-        updateEmptyState();
-        updateStats();
+        if (renderTimeout) clearTimeout(renderTimeout);
+        renderTimeout = setTimeout(() => {
+            recomputeDerivedFields();
+            updateEmptyState();
+            updateStats();
 
-        const nodesArr = Array.from(state.nodes.values());
+            const nodesArr = Array.from(state.nodes.values());
         const edgesArr = Array.from(state.edges.values()).map(e => ({
             ...e,
             source: e.source_claim_id || e.source,
@@ -398,14 +401,13 @@
             .attr("fill", "none")
             .attr("filter", "url(#contradiction-glow)");
 
-        // Main circle
+        // Core circle
         nodeEnter.append("circle")
             .attr("class", "node-circle")
             .attr("r", d => nodeRadius(d))
             .attr("fill", d => getNodeColor(d))
-            .attr("stroke", d => d3.color(getNodeColor(d)).brighter(0.5))
-            .attr("stroke-width", 1.5)
-            .attr("filter", "url(#node-glow)");
+            .attr("stroke", d => d.label === "Paper" ? "rgba(255,255,255,0.2)" : "none")
+            .attr("stroke-width", 2);
 
         // Glow burst for new nodes
         if (animate) {
@@ -470,6 +472,7 @@
         state.simulation.nodes(nodesArr);
         state.simulation.force("link").links(edgesArr);
         state.simulation.alpha(0.3).restart();
+        }, 50); // debounce delay
     }
 
     // ─── Tick ───
@@ -513,16 +516,35 @@
     }
 
     function updateStats() {
-        let papers = 0, claims = 0, questions = 0;
+        let papers = 0, claims = 0, questions = 0, concepts = 0, limitations = 0;
         state.nodes.forEach(n => {
             if (n.label === "Paper") papers++;
-            else if (n.label === "Claim") claims++;
+            else if (n.label === "Claim") {
+                claims++;
+                if (n.type && n.type.toLowerCase() === "limitation") limitations++;
+            }
             else if (n.label === "OpenQuestion") questions++;
+            else if (n.label === "Concept") concepts++;
         });
+        
+        let contradictions = 0;
+        state.edges.forEach(e => {
+            const t = e.type || e.rel_type;
+            if (t && t.toLowerCase() === "contradicts") {
+                contradictions++;
+            }
+        });
+        
         dom.statPapers.textContent = papers;
         dom.statClaims.textContent = claims;
         dom.statEdges.textContent = state.edges.size;
         dom.statQuestions.textContent = questions;
+        if (!dom.statConcepts) dom.statConcepts = document.getElementById("stat-concepts");
+        if (!dom.statContradictions) dom.statContradictions = document.getElementById("stat-contradictions");
+        if (!dom.statLimitations) dom.statLimitations = document.getElementById("stat-limitations");
+        if (dom.statConcepts) dom.statConcepts.textContent = concepts;
+        if (dom.statContradictions) dom.statContradictions.textContent = contradictions;
+        if (dom.statLimitations) dom.statLimitations.textContent = limitations;
     }
 
     // ─── Detail Panel ───
@@ -542,14 +564,14 @@
                 html += section("Authors", `<p class="panel-text">${esc(node.authors.join(", "))}</p>`);
             }
             if (node.year) {
-                html += section("Year", `<p class="panel-text">${node.year}</p>`);
+                html += section("Year", `<p class="panel-text">${esc(String(node.year))}</p>`);
             }
             if (node.abstract) {
                 html += section("Abstract", `<p class="panel-text">${esc(node.abstract)}</p>`);
             }
         } else if (node.label === "Claim") {
             dom.panelTitle.innerHTML = '<i class="fa-solid fa-lightbulb"></i> Claim';
-            html += badge(node.type || "finding", `type-${(node.type || "finding").toLowerCase()}`);
+            html += badge(node.type || "finding", esc(`type-${(node.type || "finding").toLowerCase()}`));
             if (node.section) html += badge(node.section, "type-paper");
             html += section("Claim", `<p class="panel-text">${esc(node.text || "")}</p>`);
             if (node.confidence !== undefined) {
@@ -603,10 +625,10 @@
                 const typeColor = CONFIG.colors[conn.edgeType] || CONFIG.colors.replicates;
                 const label = otherNode ? getNodeLabel(otherNode) : conn.otherId.slice(0, 8);
                 connHtml += `
-                    <div class="connection-item" data-node-id="${conn.otherId}">
+                    <div class="connection-item" data-node-id="${esc(conn.otherId)}">
                         <span class="connection-dot" style="background:${otherNode ? getNodeColor(otherNode) : '#666'}"></span>
                         <span class="connection-label">${esc(label)}</span>
-                        <span class="connection-type" style="color:${typeColor};border:1px solid ${typeColor}33;background:${typeColor}15">${conn.edgeType}</span>
+                        <span class="connection-type" style="color:${typeColor};border:1px solid ${typeColor}33;background:${typeColor}15">${esc(conn.edgeType)}</span>
                     </div>
                 `;
             });
@@ -811,15 +833,12 @@
     function handleNodeAdded(data) {
         const node = data.node || data;
         normalizeNode(node);
-        // Preserve position if node already exists
         const existing = state.nodes.get(node.id);
         if (existing) {
-            node.x = existing.x;
-            node.y = existing.y;
-            node.vx = existing.vx;
-            node.vy = existing.vy;
+            Object.assign(existing, node);
+        } else {
+            state.nodes.set(node.id, node);
         }
-        state.nodes.set(node.id, node);
         render(true);
         showToast(`New ${node.label}: ${getNodeLabel(node)}`, "info");
     }
@@ -846,7 +865,9 @@
     }
 
     function handleQuestionAdded(data) {
-        const q = data.question || data;
+        // If data is wrapped, extract it. Otherwise data is the object.
+        // We must be careful because data.question is the string text!
+        const q = (data.question && typeof data.question === "object") ? data.question : data;
         q.label = "OpenQuestion";
         state.nodes.set(q.id, q);
         render(true);

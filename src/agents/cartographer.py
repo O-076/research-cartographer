@@ -232,9 +232,35 @@ class CartographerAgent(BaseAgent):
                 for c in chunks
             ]
 
-            async for claim in extractor.run(paper_id, chunks=chunk_dicts):
+            from src.graph.schema import concept_to_props
+            
+            async for claim, concepts in extractor.run(paper_id, chunks=chunk_dicts):
                 await self._graph.add_claim(claim)
                 await self._delta.emit_node_added(claim_to_props(claim))
+                
+                # Emit the CONTAINS edge so the frontend links them
+                await self._delta.emit_edge_added({
+                    "id": f"{paper_id}:CONTAINS:{claim.id}",
+                    "source": paper_id,
+                    "target": claim.id,
+                    "rel_type": "CONTAINS",
+                    "type": "contains"
+                })
+                
+                # Link Concepts
+                for concept in concepts:
+                    await self._graph.add_concept(concept)
+                    await self._delta.emit_node_added({"label": "Concept", **concept_to_props(concept)})
+                    
+                    await self._graph.link_claim_to_concept(claim.id, concept.id)
+                    await self._delta.emit_edge_added({
+                        "id": f"{claim.id}:RELATES_TO:{concept.id}",
+                        "source": claim.id,
+                        "target": concept.id,
+                        "rel_type": "RELATES_TO",
+                        "type": "relates_to"
+                    })
+                
                 new_claims.append(claim)
 
             summary["claims"] = len(new_claims)
@@ -314,6 +340,16 @@ class CartographerAgent(BaseAgent):
             async for question in gap_finder.run(all_claims_for_gaps, existing_questions):
                 await self._graph.upsert_question(question)
                 await self._delta.emit_question_added(question_to_props(question))
+                
+                for claim_id in question.related_claim_ids:
+                    await self._delta.emit_edge_added({
+                        "id": f"{question.id}:GAPS:{claim_id}",
+                        "source": question.id,
+                        "target": claim_id,
+                        "rel_type": "GAPS",
+                        "type": "gaps"
+                    })
+                
                 question_count += 1
 
             summary["questions"] = question_count

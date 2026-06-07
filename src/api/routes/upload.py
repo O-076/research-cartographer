@@ -14,7 +14,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["upload"])
 
 
+from src.api.limiter import limiter
+
 @router.post("/upload", response_model=UploadResponse)
+@limiter.limit("5/minute")
 async def upload_pdf(request: Request, file: UploadFile = File(...)) -> UploadResponse:
     """Accept a PDF upload, create a Paper node, and kick off the pipeline.
 
@@ -40,7 +43,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)) -> UploadRe
 
     logger.info(
         "PDF upload received",
-        extra={"paper_id": paper_id, "filename": filename, "size": len(pdf_bytes)},
+        extra={"paper_id": paper_id, "original_filename": filename, "size": len(pdf_bytes)},
     )
 
     # ── Create Paper node in Neo4j ──────────────────────────────────────

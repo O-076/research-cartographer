@@ -5,6 +5,7 @@ All graph reads and writes go through ``GraphManager``.
 """
 
 import logging
+import uuid
 import os
 from typing import Any
 
@@ -112,12 +113,18 @@ class GraphManager:
         SET c += $props
         WITH c
         MATCH (p:Paper {id: $paper_id})
-        MERGE (p)-[:CONTAINS]->(c)
+        MERGE (p)-[r:CONTAINS]->(c)
+        ON CREATE SET r.id = $edge_id
         """
         props = claim_to_props(claim)
         await self._write(
             query,
-            {"id": claim.id, "props": props, "paper_id": claim.paper_id},
+            {
+                "id": claim.id,
+                "props": props,
+                "paper_id": claim.paper_id,
+                "edge_id": str(uuid.uuid4()),
+            },
             "add_claim",
         )
 
@@ -192,7 +199,7 @@ class GraphManager:
             extra={
                 "edge_id": edge.id,
                 "type": edge.type,
-                "created": created,
+                "is_new": created,
             },
         )
         return created
@@ -266,11 +273,16 @@ class GraphManager:
         query = """
         MATCH (cl:Claim {id: $claim_id})
         MATCH (co:Concept {id: $concept_id})
-        MERGE (cl)-[:RELATES_TO]->(co)
+        MERGE (cl)-[r:RELATES_TO]->(co)
+        ON CREATE SET r.id = $edge_id
         """
         await self._write(
             query,
-            {"claim_id": claim_id, "concept_id": concept_id},
+            {
+                "claim_id": claim_id,
+                "concept_id": concept_id,
+                "edge_id": str(uuid.uuid4()),
+            },
             "link_claim_concept",
         )
 
@@ -291,12 +303,17 @@ class GraphManager:
             link_query = """
             MATCH (q:OpenQuestion {id: $question_id})
             MATCH (c:Claim {id: $claim_id})
-            MERGE (q)-[:GAPS]->(c)
+            MERGE (q)-[r:GAPS]->(c)
+            ON CREATE SET r.id = $edge_id
             """
             await self._write(
                 link_query,
-                {"question_id": question.id, "claim_id": claim_id},
-                "link_question_claim",
+                {
+                    "question_id": question.id,
+                    "claim_id": claim_id,
+                    "edge_id": str(uuid.uuid4()),
+                },
+                "link_question_to_claim",
             )
 
     async def resolve_question(self, question_id: str) -> None:

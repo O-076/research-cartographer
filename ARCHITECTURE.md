@@ -1,4 +1,4 @@
-# 🏗️ ARCHITECTURE.md — Technical Specification
+# 🏗️ ARCHITECTURE.md: Technical Specification
 
 ## System Overview
 
@@ -97,8 +97,8 @@ This reduces LLM calls by ~80%.
 1. Fetch all Concept nodes from Neo4j
 2. For each concept pair (C1, C2) with no bridging claims:
    a. Generate a potential research question: "What is the relationship between C1 and C2?"
-   b. Query Semantic Scholar: "research on [C1] AND [C2]"
-   c. If Semantic Scholar finds <3 relevant papers: novelty_score += 0.3
+   b. Query OpenAlex API: "research on [C1] AND [C2]"
+   c. If OpenAlex finds <3 relevant papers: novelty_score += 0.3
    d. If no direct papers found: novelty_score = 0.9+
 3. Write OpenQuestion nodes for gaps with novelty_score > 0.5
 ```
@@ -110,7 +110,7 @@ This reduces LLM calls by ~80%.
 Uses **Microsoft Agent Framework 1.0 A2A protocol** for agent dispatch.
 
 ```python
-# A2A dispatch pseudocode
+# A2A dispatch implementation
 async def orchestrate(paper_id: str):
     await self.dispatch_agent(
         agent_id="extractor",
@@ -137,7 +137,7 @@ async def after_comparison(paper_id: str):
 
 ### 3. Graph Layer
 
-**Neo4j AuraDB** — cloud-managed, free tier sufficient for hackathon scale.
+**Neo4j AuraDB**: Cloud-managed, free tier sufficient for hackathon scale.
 
 **`src/graph/schema.py`** defines all node/relationship types as Python dataclasses + Neo4j constraint scripts.
 
@@ -193,7 +193,7 @@ FastAPI with three main concerns:
 - Full graph snapshot (initial load)
 - WebSocket for live deltas
 
-The FastAPI app and the agent pipeline share the same process. The pipeline runs as asyncio tasks — not separate processes, not threads.
+The FastAPI app and the agent pipeline share the same process. The pipeline runs as asyncio tasks (no separate processes or threads).
 
 ```python
 # main.py structure
@@ -243,7 +243,7 @@ ws.onmessage = (event) => {
 };
 ```
 
-**Critical:** After every delta update, call `simulation.alpha(0.3).restart()` to smoothly re-layout the graph. Do not call `.restart()` with alpha=1 — it will cause a jarring jump.
+**Critical:** After every delta update, call `simulation.alpha(0.3).restart()` to smoothly re-layout the graph. Do not call `.restart()` with alpha=1, as it will cause a jarring jump.
 
 ---
 
@@ -257,7 +257,7 @@ ws.onmessage = (event) => {
         → emits "node_added" events
       → [Comparator] queries Neo4j, writes Edges to Neo4j
         → emits "edge_added"/"edge_updated" events
-      → [Gap Finder] queries Neo4j + Semantic Scholar, writes OpenQuestions
+      → [Gap Finder] queries Neo4j + OpenAlex API, writes OpenQuestions
         → emits "question_added"/"question_resolved" events
   → [DeltaEmitter] pushes events to all WebSocket connections
     → [Frontend D3.js] adds/updates nodes/edges with animations
@@ -279,7 +279,7 @@ AZURE_OPENAI_KEY=                  # Azure OpenAI API key
 AZURE_OPENAI_DEPLOYMENT=           # Deployment name (e.g. gpt-4o)
 AZURE_OPENAI_EMBEDDING_DEPLOYMENT= # e.g. text-embedding-3-large
 
-# Semantic Scholar (No keys required)
+# OpenAlex (No keys required)
 
 # Neo4j
 NEO4J_URI=                         # e.g. neo4j+s://xxx.databases.neo4j.io

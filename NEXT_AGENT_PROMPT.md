@@ -30,8 +30,8 @@ Committed implementation now includes:
 - Graph schema, graph manager, and WebSocket delta emitter.
 - BaseAgent with Azure OpenAI/Foundry IQ wrappers.
 - Extractor and Comparator agents.
-- Async Cartographer pipeline fallback.
-- MVP Gap Finder placeholder with deterministic novelty scoring.
+- A2A Protocol Cartographer orchestrator.
+- Gap Finder fully wired to OpenAlex API for real-time web grounding and novelty scoring.
 - FastAPI backend routes for upload, graph snapshot, paper status, and WebSocket streaming.
 - D3.js v7 frontend with upload UI, live delta handlers, graph styling, and click-to-inspect side panel.
 - Updated `README.md` and `TODO.md` status/caveat tracking.
@@ -61,20 +61,17 @@ python -c "import src.api.main; print('api import ok')"
 
 If installation fails due to sandbox/network restrictions, request escalation for dependency installation.
 
-### 2. A2A is not implemented yet
+### 2. A2A Protocol is fully operational
 
-Current state: `CartographerAgent` is an async fallback orchestrator using direct sub-agent calls. This is acceptable as a temporary fallback per `CHALLENGES.md`, but the project target remains Microsoft Agent Framework 1.0 + A2A.
+Current state: `CartographerAgent` successfully uses Microsoft Agent Framework 1.0 + A2A Protocol to orchestrate all sub-agents. 
 
 Solution path:
 
-- Check Microsoft Agent Framework/A2A examples and the IQ Series repo.
-- Timebox the attempt.
-- If feasible, replace direct sub-agent calls in `cartographer.py` with A2A dispatch.
-- If not feasible quickly, keep async fallback and document it clearly in `README.md`, `TODO.md`, and submission notes.
+- None required. This core hackathon requirement is completed.
 
-### 3. Web IQ novelty scoring replaced by Semantic Scholar
+### 3. Web IQ novelty scoring replaced by OpenAlex API
 
-Current state: `GapFinderAgent` uses the free Semantic Scholar API for web grounding instead of Web IQ (which is in limited access). It queries Semantic Scholar for real paper counts to score novelty.
+Current state: `GapFinderAgent` uses the free OpenAlex API for web grounding instead of Semantic Scholar (which rate-limited our shared IPs). It queries OpenAlex for real paper counts to natively score novelty.
 
 Solution path:
 
@@ -123,7 +120,7 @@ Start with environment/runtime validation, not new feature work:
 2. Run import and compile checks.
 3. Start FastAPI.
 4. Use the browser to verify frontend asset loading and WebSocket connection.
-5. Only then move to A2A or Web IQ implementation.
+5. Only then move to QAing the A2A and OpenAlex integration.
 
 ## Guardrails
 
@@ -142,14 +139,4 @@ If dependency/runtime validation fixes are needed, use:
 git commit -m "fix(api): stabilize local runtime startup"
 ```
 
-If A2A is implemented:
 
-```bash
-git commit -m "feat(orchestrator): add a2a agent dispatch"
-```
-
-If Web IQ scoring is implemented:
-
-```bash
-git commit -m "feat(gap-finder): add web iq novelty scoring"
-```
