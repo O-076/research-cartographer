@@ -39,6 +39,16 @@ class GraphResponse(BaseModel):
     questions: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class EdgeDetailResponse(BaseModel):
+    """Returned by GET /edge/{edge_id}."""
+
+    edge: dict[str, Any]
+    source_claim: dict[str, Any]
+    target_claim: dict[str, Any]
+    source_paper: dict[str, Any]
+    target_paper: dict[str, Any]
+
+
 # ---------------------------------------------------------------------------
 # WebSocket delta event models
 # ---------------------------------------------------------------------------

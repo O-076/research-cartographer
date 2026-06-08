@@ -204,6 +204,94 @@ class GraphManager:
         )
         return created
 
+    async def get_edge_with_claims(
+        self, edge_id: str
+    ) -> dict[str, Any] | None:
+        """Fetch a relationship and both connected claims with their papers.
+
+        Returns a dict with keys: edge, source_claim, target_claim,
+        source_paper, target_paper. Returns None if the edge is not found.
+        """
+        query = """
+        MATCH (src:Claim)-[r {id: $edge_id}]->(tgt:Claim)
+        MATCH (p1:Paper)-[:CONTAINS]->(src)
+        MATCH (p2:Paper)-[:CONTAINS]->(tgt)
+        RETURN
+            r.id           AS edge_id,
+            r.type         AS edge_type,
+            r.strength     AS edge_strength,
+            r.reasoning    AS edge_reasoning,
+            r.created_at   AS edge_created_at,
+            src.id         AS src_id,
+            src.text       AS src_text,
+            src.type       AS src_type,
+            src.confidence AS src_confidence,
+            src.section    AS src_section,
+            src.source_chunk_text AS src_chunk,
+            src.paper_id   AS src_paper_id,
+            tgt.id         AS tgt_id,
+            tgt.text       AS tgt_text,
+            tgt.type       AS tgt_type,
+            tgt.confidence AS tgt_confidence,
+            tgt.section    AS tgt_section,
+            tgt.source_chunk_text AS tgt_chunk,
+            tgt.paper_id   AS tgt_paper_id,
+            p1.id          AS src_paper_id_full,
+            p1.title       AS src_paper_title,
+            p1.authors     AS src_paper_authors,
+            p1.year        AS src_paper_year,
+            p2.id          AS tgt_paper_id_full,
+            p2.title       AS tgt_paper_title,
+            p2.authors     AS tgt_paper_authors,
+            p2.year        AS tgt_paper_year
+        """
+        async with self._driver.session() as session:
+            result = await session.run(query, {"edge_id": edge_id})
+            record = await result.single()
+            if not record:
+                return None
+
+            data = dict(record)
+            return {
+                "edge": {
+                    "id": data["edge_id"],
+                    "type": data["edge_type"],
+                    "strength": data["edge_strength"] or 0.0,
+                    "reasoning": data["edge_reasoning"] or "",
+                    "created_at": data["edge_created_at"],
+                },
+                "source_claim": {
+                    "id": data["src_id"],
+                    "text": data["src_text"],
+                    "type": data["src_type"],
+                    "confidence": data["src_confidence"] or 0.0,
+                    "section": data["src_section"],
+                    "source_chunk_text": data["src_chunk"] or "",
+                    "paper_id": data["src_paper_id"],
+                },
+                "target_claim": {
+                    "id": data["tgt_id"],
+                    "text": data["tgt_text"],
+                    "type": data["tgt_type"],
+                    "confidence": data["tgt_confidence"] or 0.0,
+                    "section": data["tgt_section"],
+                    "source_chunk_text": data["tgt_chunk"] or "",
+                    "paper_id": data["tgt_paper_id"],
+                },
+                "source_paper": {
+                    "id": data["src_paper_id_full"],
+                    "title": data["src_paper_title"],
+                    "authors": data["src_paper_authors"] or [],
+                    "year": data["src_paper_year"],
+                },
+                "target_paper": {
+                    "id": data["tgt_paper_id_full"],
+                    "title": data["tgt_paper_title"],
+                    "authors": data["tgt_paper_authors"] or [],
+                    "year": data["tgt_paper_year"],
+                },
+            }
+
     async def update_edge(self, edge: Edge) -> None:
         """Update an existing edge's properties (re-scoring)."""
         rel_type = EDGE_TYPE_TO_NEO4J.get(edge.type)

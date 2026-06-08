@@ -77,7 +77,8 @@ RULES:
 - Assign a confidence score (0.0–1.0) reflecting how clearly the text
   supports the claim.
 - Indicate the paper section the claim comes from.
-- Provide 1 to 3 short thematic concepts (e.g., 'Transformer', 'Computer Vision') for each claim.
+- Provide 1 to 2 high-level, overarching thematic concepts (e.g., 'Transformers', 'Computer Vision') for each claim.
+- IMPORTANT: Prioritize quality over quantity for concepts. Do NOT extract trivial, hyper-specific keywords or low-level entities. Concepts should act as broad bridges that connect claims across entirely different papers in the same field.
 
 You MUST respond with valid JSON.
 Return a JSON object with a single key "claims" whose value is an array.

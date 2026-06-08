@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 # Minimum cosine similarity to consider a claim pair worth evaluating
-SIMILARITY_THRESHOLD: float = 0.20
+SIMILARITY_THRESHOLD: float = 0.35
 
 # Maximum claim pairs sent in a single LLM call
 _MAX_PAIRS_PER_CALL: int = 10
@@ -76,7 +76,8 @@ RULES:
 - Evaluate each pair independently.
 - Assign a strength score (0.0–1.0) reflecting how strong the relationship is.
 - Provide a one-sentence reasoning.
-- If you are uncertain, prefer "none" over a weak guess.
+- DO NOT be overly restrictive. If claims discuss the same core concepts, techniques, or metrics from different papers, actively look for 'supports', 'extends', or 'refines' relationships.
+- Only use 'none' if they are truly unrelated. We want to connect the graph!
 
 You MUST respond with valid JSON.
 Return a JSON object with a single key "edges" whose value is an array.
@@ -173,9 +174,15 @@ class ComparatorAgent(BaseAgent):
                     max_tokens=4096,
                 )
             except Exception as exc:
+                err_msg = str(exc)
+                if hasattr(exc, "response") and exc.response is not None:
+                    try:
+                        err_msg += f" Response: {exc.response.text}"
+                    except Exception:
+                        pass
                 logger.error(
                     "LLM call failed during comparison",
-                    extra={"error": str(exc)},
+                    extra={"error": err_msg},
                 )
                 return []
 
@@ -221,10 +228,16 @@ class ComparatorAgent(BaseAgent):
             return results
 
         import asyncio
+        sem = asyncio.Semaphore(15)
+
+        async def process_batch_with_sem(batch):
+            async with sem:
+                return await process_batch(batch)
+
         tasks = []
         for batch_start in range(0, len(candidate_pairs), _MAX_PAIRS_PER_CALL):
             batch = candidate_pairs[batch_start : batch_start + _MAX_PAIRS_PER_CALL]
-            tasks.append(process_batch(batch))
+            tasks.append(process_batch_with_sem(batch))
 
         for coro in asyncio.as_completed(tasks):
             edges = await coro

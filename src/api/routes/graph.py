@@ -4,7 +4,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
-from src.api.models import GraphResponse, PaperStatusResponse, PIPELINE_PROGRESS
+from src.api.models import GraphResponse, PaperStatusResponse, PIPELINE_PROGRESS, EdgeDetailResponse
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +62,23 @@ async def get_paper_status(request: Request, paper_id: str) -> PaperStatusRespon
         status=status,
         progress_pct=progress,
     )
+
+
+# ---------------------------------------------------------------------------
+# REST — edge detail
+# ---------------------------------------------------------------------------
+
+@router.get("/edge/{edge_id}", response_model=EdgeDetailResponse)
+async def get_edge_detail(
+    edge_id: str,
+    request: Request,
+) -> EdgeDetailResponse:
+    """Fetch full details for a relationship: both claims + their papers."""
+    graph_manager = request.app.state.graph_manager
+    result = await graph_manager.get_edge_with_claims(edge_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"Edge {edge_id!r} not found")
+    return EdgeDetailResponse(**result)
 
 
 # ---------------------------------------------------------------------------

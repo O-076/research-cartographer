@@ -1,322 +1,276 @@
-# 🤖 AGENTS.md: Instructions for AI Coding Agents
+# 🤖 AGENTS.md — Instructions for AI Coding Agents
 
-> This file is the primary seed for AI coding agents (Claude Code, GitHub Copilot, Codex, Cursor, etc.).
-> Read this file fully before writing a single line of code. It contains all decisions already made; do not revisit them.
-
----
-
-## 🧭 What This Project Is
-
-**Research Cartographer** is a multi-agent system submitted to the Microsoft Agents League Hackathon 2026 (Reasoning Agents track). It ingests scientific PDFs, reasons across them using 4 coordinated AI agents, and produces a live D3.js force-directed knowledge graph streamed via WebSocket.
-
-**Deadline:** June 14, 2026 · 11:59 PM PT (velocity matters).
+> Primary seed file for Claude Code, GitHub Copilot, Codex, Cursor, and any other AI coding agent.
+> Read this file fully before writing a single line of code.
+> NEXT_AGENT_PROMPT.md is deprecated — do not create or use it.
 
 ---
 
-## 🚫 Non-Negotiables (Do Not Change These)
+## Project Status (as of June 7, 2026)
 
-These decisions are final. Do not suggest alternatives.
+**Core pipeline: COMPLETE and tested.**
+Days 1–8 are fully implemented and verified with real papers.
+The system is running at localhost:8000. Do not refactor working code.
 
-- **Agent framework:** Microsoft Agent Framework 1.0 (do not use LangChain or CrewAI)
-- **Agent coordination:** A2A Protocol (do not use custom message passing)
-- **Knowledge base:** Azure AI Foundry IQ (do not use a custom vector store)
-- **Web grounding:** OpenAlex API (Semantic Scholar rate limits shared IPs too heavily for Hackathon environments)
-- **Graph DB:** Neo4j (do not use a plain dict; NetworkX is acceptable for local testing only)
-- **Backend:** FastAPI (do not use Flask or Django)
-- **Frontend graph:** D3.js v7 force-directed (do not use Cytoscape.js or vis.js)
-- **PDF parsing:** PyMuPDF (fitz) primary, pdfplumber fallback for complex layouts
-- **Embeddings:** `text-embedding-3-large` via Azure OpenAI (do not use ada-002)
-- **All secrets via .env:** Never hardcode or commit credentials
+What works today:
+- PDF upload → Foundry IQ → Extractor → Comparator → Gap Finder (OpenAlex) → Neo4j → WebSocket → D3.js graph
+- A2A orchestration via Microsoft Agent Framework 1.0
+- Live animated force graph with contradiction detection
+- Side panel for node details (click any node)
+- 10-paper performance tested
+
+**Current work: Phase 2 research intelligence features.**
+See TODO.md for the prioritized list. Start with the contradiction drill-down.
+The detailed spec for it is in `FEATURE_contradiction_drill_down.md`.
 
 ---
 
-## 📁 Codebase Map
+## Non-Negotiables — Do Not Change These
 
-Build files in this exact structure. Do not invent new top-level directories.
+- Agent framework: Microsoft Agent Framework 1.0 — not LangChain, not CrewAI
+- Knowledge base: Azure AI Foundry IQ — not a custom vector store
+- Graph DB: Neo4j — all Cypher queries in `graph_manager.py` only
+- Backend: FastAPI — not Flask, not Django
+- Frontend graph: D3.js v7 — not Cytoscape, not vis.js
+- All secrets via `.env` — never hardcoded, never committed
+- No Cypher queries outside `src/graph/graph_manager.py`
+- No Azure SDK calls outside agent classes and uploaders
+
+---
+
+## Codebase Map
 
 ```
 src/
 ├── agents/
-│   ├── extractor.py       # Agent 1: claim extraction per paper
-│   ├── comparator.py      # Agent 2: cross-paper edge detection
-│   ├── gap_finder.py      # Agent 3: open question discovery
-│   ├── cartographer.py    # Agent 4: A2A orchestrator
-│   └── base_agent.py      # Shared base class for all agents
-├── ingestion/
-│   ├── pdf_parser.py      # PDF → structured chunks
-│   └── foundry_uploader.py # Chunks → Foundry IQ knowledge base
-├── graph/
-│   ├── graph_manager.py   # Neo4j CRUD + query interface
-│   ├── schema.py          # Node/edge type definitions
-│   └── delta_emitter.py   # Emits graph change events for WebSocket
+│   ├── base_agent.py          # BaseAgent: OpenAI + Foundry IQ + retry
+│   ├── cartographer.py        # A2A orchestrator — coordinates pipeline
+│   ├── comparator.py          # Cross-paper edge detection
+│   ├── extractor.py           # Claim extraction per paper
+│   └── gap_finder.py          # Open question discovery via OpenAlex
 ├── api/
-│   ├── main.py            # FastAPI app entry point
 │   ├── routes/
-│   │   ├── upload.py      # POST /upload
-│   │   └── graph.py       # GET /graph, WS /ws/graph
-│   └── models.py          # Pydantic request/response models
-└── frontend/
-    ├── index.html         # Single-page app shell
-    ├── graph.js           # D3.js force graph + WebSocket client
-    └── styles.css         # Tailwind + custom graph styling
+│   │   ├── graph.py           # GET /graph, GET /edge/{id}, WS /ws/graph
+│   │   └── upload.py          # POST /upload
+│   ├── limiter.py             # Rate limiting
+│   ├── main.py                # FastAPI app entry + lifespan
+│   └── models.py              # Pydantic request/response models
+├── frontend/
+│   ├── favicon.svg
+│   ├── graph.js               # D3.js force graph + WebSocket client
+│   ├── index.html             # Single-page app shell
+│   └── styles.css             # Dark theme, CSS vars, animations
+└── graph/
+    ├── delta_emitter.py       # WebSocket pub/sub
+    ├── graph_manager.py       # Neo4j CRUD — ONLY file with Cypher
+    └── schema.py              # Dataclasses, enums, serializers
 ```
 
 ---
 
-## 🧠 Agent Definitions
+## Data Schemas (Current — Do Not Change)
 
-### Agent 1: Extractor (`src/agents/extractor.py`)
-
-**Purpose:** Given a paper's chunks from Foundry IQ, extract structured claims.
-
-**Input:** `paper_id: str`, chunks fetched from Foundry IQ
-**Output:** List of `Claim` objects written to Neo4j
-
+### Claim node (Neo4j + frontend)
 ```python
-# Claim schema
 {
     "id": "uuid",
-    "paper_id": "str",
-    "text": "str",              # The claim in plain language
+    "paper_id": "uuid",
+    "text": "str",
     "type": "finding|method|assumption|limitation",
     "confidence": 0.0–1.0,
-    "section": "abstract|intro|methods|results|discussion",
-    "embedding": [float]        # text-embedding-3-large vector
+    "section": "abstract|intro|methods|results|discussion|unknown",
+    "embedding": [float],           # stored in Neo4j, excluded from WS events
+    "source_chunk_text": "str",     # raw text the claim was extracted from
+    "created_at": "iso8601"
 }
 ```
 
-**System prompt direction:** Extract factual, falsifiable claims only. Ignore background summaries. Each claim must be standalone and self-contained. Output strict JSON array.
-
----
-
-### Agent 2: Comparator (`src/agents/comparator.py`)
-
-**Purpose:** Given any two claims, determine their relationship and write a typed edge.
-
-**Trigger:** Fires after every new paper is ingested. Re-evaluates ALL edges involving new claims.
-**Input:** Pairs of `Claim` objects from Neo4j
-**Output:** `Edge` objects written to Neo4j
-
+### Edge relationship (Neo4j + frontend)
 ```python
-# Edge schema
 {
     "id": "uuid",
-    "source_claim_id": "str",
-    "target_claim_id": "str",
+    "source_claim_id": "uuid",
+    "target_claim_id": "uuid",
     "type": "supports|contradicts|extends|replicates|refines",
-    "strength": 0.0–1.0,        # Semantic similarity + LLM confidence
-    "reasoning": "str",          # Why this relationship exists
-    "created_at": "datetime"
+    "strength": 0.0–1.0,
+    "reasoning": "str",             # Comparator's explanation
+    "created_at": "iso8601"
 }
 ```
 
-**Key behavior:** When a new paper is added, existing edges are NOT deleted; they are re-scored. The graph is additive.
-
----
-
-### Agent 3: Gap Finder (`src/agents/gap_finder.py`)
-
-**Purpose:** Look across all claims in the graph and identify questions the corpus doesn't answer. Cross-reference with OpenAlex API to score novelty.
-
-**Trigger:** Runs after Comparator finishes. Re-runs on every new paper.
-**Input:** Full claim graph from Neo4j + OpenAlex API search
-**Output:** `OpenQuestion` nodes written to Neo4j
-
+### Paper node
 ```python
-# OpenQuestion schema
 {
     "id": "uuid",
-    "question": "str",
-    "novelty_score": 0.0–1.0,   # How unexplored this is (OpenAlex API informed)
-    "related_claim_ids": ["str"],
-    "web_evidence": "str",       # What OpenAlex found (or didn't find)
-    "status": "open|partially_answered|resolved"
+    "title": "str",
+    "authors": ["str"],
+    "year": int | None,
+    "abstract": "str",
+    "status": "queued|extracting|claims_ready|comparing|edges_ready|gap_finding|complete|error"
 }
 ```
 
-**Visual representation:** OpenQuestion nodes render as glowing white nodes on the graph ("white space").
+---
+
+## API Contract (Current)
+
+### REST
+```
+POST /upload                        → { paper_id, status: "queued" }
+GET  /graph                         → { nodes, edges, questions }
+GET  /paper/{paper_id}/status       → { paper_id, status, progress_pct }
+GET  /edge/{edge_id}                → EdgeDetailResponse  ← TO BE BUILT
+GET  /claim/{claim_id}/consensus    → ConsensusResponse   ← TO BE BUILT
+GET  /verify?statement={text}       → VerificationResponse ← TO BE BUILT
+```
+
+### WebSocket  `WS /ws/graph`
+```
+Server → Client:
+  { "type": "node_added",         "data": { node },          "timestamp": "iso" }
+  { "type": "edge_added",         "data": { edge },          "timestamp": "iso" }
+  { "type": "edge_updated",       "data": { edge },          "timestamp": "iso" }
+  { "type": "question_added",     "data": { question },      "timestamp": "iso" }
+  { "type": "question_resolved",  "data": { question_id },   "timestamp": "iso" }
+  { "type": "paper_status",       "data": { paper_id, status }, "timestamp": "iso" }
+```
 
 ---
 
-### Agent 4: Cartographer (`src/agents/cartographer.py`)
+## Frontend Architecture (graph.js)
 
-**Purpose:** A2A orchestrator. Coordinates the other three agents, maintains pipeline state, decides when re-analysis is needed.
+The entire frontend is one IIFE in `graph.js`. Key objects:
 
-**Responsibilities:**
-- Receive upload events from FastAPI
-- Dispatch Extractor → await completion → dispatch Comparator → await completion → dispatch Gap Finder
-- Emit graph delta events at each stage via `delta_emitter.py`
-- Track pipeline state per paper (queued / extracting / comparing / gap_finding / complete)
-- Handle failures gracefully: partial results are still pushed to the graph
+```javascript
+state = {
+    nodes: Map<id, node>,       // all nodes keyed by id
+    edges: Map<id, edge>,       // all edges keyed by id
+    simulation: d3.forceSimulation,
+    svg: d3Selection,
+    g: d3Selection,             // main group (zoom/pan target)
+    edgeGroup: d3Selection,     // edges rendered below nodes
+    nodeGroup: d3Selection,     // nodes rendered above edges
+    selectedNodeId: str | null,
+    ws: WebSocket,
+    zoom: d3.zoom
+}
 
-**State machine per paper:**
+dom = {
+    // All DOM element references — populated in init()
+    detailPanel, panelTitle, panelContent,
+    statPapers, statClaims, statEdges, statQuestions, statConcepts,
+    statContradictions, statLimitations,
+    uploadDropzone, fileInput, ...
+}
 ```
-QUEUED → EXTRACTING → CLAIMS_READY → COMPARING → EDGES_READY → GAP_FINDING → COMPLETE
-                                                                               ↕
-                                                                           ERROR
-```
+
+Key functions:
+- `render(animate: bool)` — debounced (50ms), full D3 update cycle
+- `openDetailPanel(node)` — renders node details in right sidebar
+- `handleWsEvent(msg)` — WebSocket message dispatcher
+- `recomputeDerivedFields()` — recalculates `_connectionCount` and `_hasContradiction` on all nodes
+
+**When adding a new panel type** (e.g., edge detail panel):
+- Add the HTML section to `index.html` inside `#detail-panel`
+- Add the rendering function to `graph.js` (follow `openDetailPanel` pattern)
+- Add CSS to `styles.css` using existing CSS vars
 
 ---
 
-## 🔌 API Contract
+## CSS Design System (styles.css)
 
-### REST Endpoints
+All colors via CSS custom properties — never hardcode hex values in JS or HTML:
 
-```
-POST /upload
-  Body: multipart/form-data { file: PDF }
-  Response: { paper_id: str, status: "queued" }
+```css
+--color-paper: #4a9eff
+--color-finding: #00ff88
+--color-method: #ffd700
+--color-contradiction: #ff4444
+--color-question: #ffffff
+--color-concept: #9b59b6
 
-GET /graph
-  Response: { nodes: [...], edges: [...], questions: [...] }
+--edge-supports: #00ff88
+--edge-contradicts: #ff4444
+--edge-extends: #4a9eff
+--edge-replicates: #6b7280
+--edge-refines: #6b7280
 
-GET /paper/{paper_id}/status
-  Response: { paper_id, status, progress_pct }
-```
-
-### WebSocket
-
-```
-WS /ws/graph
-  Server → Client messages (JSON):
-  
-  { "type": "node_added",    "data": { node } }
-  { "type": "edge_added",    "data": { edge } }
-  { "type": "edge_updated",  "data": { edge } }
-  { "type": "question_added","data": { question } }
-  { "type": "question_resolved", "data": { question_id } }
-  { "type": "paper_status",  "data": { paper_id, status } }
+--bg-primary: #0a0a1a
+--bg-glass: rgba(15, 16, 28, 0.72)
+--border-glass: rgba(255, 255, 255, 0.08)
+--panel-width: 420px
 ```
 
-The frontend ONLY uses WebSocket deltas after initial load. Never re-fetch the full graph.
+Use `backdrop-filter: blur(20px)` for glass panels. Use `var(--transition-normal)` for animations.
 
 ---
 
-## 🗄️ Neo4j Graph Schema
+## graph_manager.py Conventions
 
-### Node Labels
-- `:Paper`: `{id, title, authors, year, abstract}`
-- `:Claim`: `{id, paper_id, text, type, confidence, section}`
-- `:Concept`: `{id, name, embedding}` (auto-extracted shared themes)
-- `:OpenQuestion`: `{id, question, novelty_score, status}`
-
-### Relationship Types
-- `(:Claim)-[:SUPPORTS]→(:Claim)`
-- `(:Claim)-[:CONTRADICTS]→(:Claim)`
-- `(:Claim)-[:EXTENDS]→(:Claim)`
-- `(:Claim)-[:REPLICATES]→(:Claim)`
-- `(:Claim)-[:REFINES]→(:Claim)`
-- `(:Paper)-[:CONTAINS]→(:Claim)`
-- `(:Claim)-[:RELATES_TO]→(:Concept)`
-- `(:OpenQuestion)-[:GAPS]→(:Claim)`
-
----
-
-## 🌊 Async Pipeline (Critical: Read This)
-
-The async behavior is the #1 visual differentiator. Implement it correctly.
+Every new query follows this pattern:
 
 ```python
-# Pseudocode for the async flow
-async def process_paper(paper_id: str):
-    # Stage 1: Extraction (emit node events as claims are found)
-    async for claim in extractor.run(paper_id):
-        await graph_manager.add_claim(claim)
-        await delta_emitter.emit("node_added", claim)
+# Read query
+async def get_something(self, param: str) -> list[dict[str, Any]]:
+    query = """
+    MATCH (n:NodeType {id: $id})
+    RETURN n
+    """
+    return await self._read_nodes(query, {"id": param}, "n")
 
-    # Stage 2: Comparison (emit edge events as relationships are found)
-    async for edge in comparator.run(paper_id):
-        await graph_manager.add_or_update_edge(edge)
-        event = "edge_updated" if edge.existed else "edge_added"
-        await delta_emitter.emit(event, edge)
-
-    # Stage 3: Gap Finding (emit question events)
-    async for question in gap_finder.run():
-        await graph_manager.upsert_question(question)
-        await delta_emitter.emit("question_added", question)
+# Write query
+async def add_something(self, obj: SomeDataclass) -> None:
+    query = """
+    MERGE (n:NodeType {id: $id})
+    SET n += $props
+    """
+    await self._write(query, {"id": obj.id, "props": to_props(obj)}, "add_something")
 ```
 
-Use `asyncio.Queue` for the pipeline. Do not use threading.
+For queries returning multiple node types (e.g., edge + two claims + two papers):
+use `_read_raw(query, params)` which returns raw Neo4j records.
 
 ---
 
-## 🎨 Frontend Behavior (D3.js)
+## models.py Conventions
 
-- **Node size:** proportional to number of connections
-- **Node color:**
-  - Blue = Paper nodes
-  - Green = Claim nodes (finding/result)
-  - Yellow = Claim nodes (method/assumption)
-  - Red = Claims involved in contradictions
-  - White/Glowing = OpenQuestion nodes
-  - Purple = Concept nodes
-- **Edge color:**
-  - Green = supports
-  - Red = contradicts
-  - Blue = extends
-  - Grey = replicates/refines
-- **Edge thickness:** proportional to `strength` score
-- **Click behavior:** clicking any node opens a side panel with full details + agent reasoning
-- **New nodes/edges:** animate in with a brief glow effect (CSS transition)
-- **Contradiction clusters:** nodes with many red edges get a pulsing red halo
+Every new endpoint gets a Pydantic response model:
 
----
-
-## 🧪 Testing Strategy
-
-- Unit test each agent with 2–3 mock papers (include test PDFs in `tests/fixtures/`)
-- Test WebSocket delta stream with a mock pipeline
-- Test Neo4j queries with an in-memory Neo4j or mocked driver
-- Do NOT write tests before the feature exists. Test as you build
-
----
-
-## 🔐 Security Rules (Enforced)
-
-See [SECURITY.md](SECURITY.md) for full details. Summary:
-
-- All credentials in `.env` only. Never in code, never in comments.
-- `.env` is gitignored. Use `.env.example` with placeholder values.
-- No PII, no customer data, no internal Microsoft info
-- Run `git diff --cached` before every commit to check for secrets
-- If you accidentally stage a secret: `git reset HEAD <file>` immediately
-
----
-
-## 📋 Environment Variables Required
-
-See `.env.example` for the full list. Key ones:
-
-```
-AZURE_FOUNDRY_IQ_ENDPOINT=
-AZURE_FOUNDRY_IQ_KEY=
-AZURE_OPENAI_ENDPOINT=
-AZURE_OPENAI_KEY=
-NEO4J_URI=
-NEO4J_USERNAME=
-NEO4J_PASSWORD=
+```python
+class EdgeDetailResponse(BaseModel):
+    edge: dict[str, Any]
+    source_claim: dict[str, Any]
+    target_claim: dict[str, Any]
+    source_paper: dict[str, Any]
+    target_paper: dict[str, Any]
 ```
 
 ---
 
-## ⚡ Priorities for AI Agents
+## Security Rules
 
-When choosing what to build next, follow this priority order:
-
-1. **Working pipeline first:** PDF in, claims in Neo4j, even if ugly
-2. **WebSocket streaming second:** The live graph is the demo
-3. **D3.js visualization third:** The visual impact
-4. **Gap Finder last:** Most complex, least critical for MVP
-
-If time is short, a working Extractor + Comparator + live D3 graph is a complete, submittable demo.
+- All credentials in `.env` only — see SECURITY.md
+- Run `git diff --cached` before every commit
+- Never commit `.env` — it is gitignored
+- No real values in `.env.example`
+- No PII, no internal Microsoft info, no API keys in code or comments
 
 ---
 
-## 🔗 Key References
+## Priorities for AI Agents
 
-- [Microsoft Agent Framework 1.0 Docs](https://aka.ms/agentframework)
-- [A2A Protocol Spec](https://aka.ms/a2a)
-- [Foundry IQ Docs](https://learn.microsoft.com/azure/foundry/agents/concepts/what-is-foundry-iq)
-- [Web IQ Docs](https://learn.microsoft.com/azure/foundry/agents/concepts/what-is-web-iq)
-- [IQ Series Learning](https://aka.ms/iq-series)
-- [Hackathon Discord](https://aka.ms/agentsleague/discord)
+1. **Never break working code.** The pipeline runs. Don't refactor it.
+2. **Phase 2 features in order** — see TODO.md. Contradiction drill-down is next.
+3. **Read the feature spec file** before implementing any Phase 2 feature.
+4. **Demo video papers** — transformer papers listed in TODO.md. Use these.
+5. **Submission deadline: June 14, 2026 11:59 PM PT.** No extensions.
+
+---
+
+## Key Links
+
+- Foundry IQ docs: https://learn.microsoft.com/azure/foundry/agents/concepts/what-is-foundry-iq
+- A2A Protocol: https://aka.ms/a2a
+- IQ Series: https://aka.ms/iq-series
+- Discord: https://aka.ms/agentsleague/discord
+- Foundry Forum: https://aka.ms/foundry/forum

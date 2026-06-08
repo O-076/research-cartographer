@@ -20,10 +20,10 @@
         },
         graph: {
             // Force simulation
-            chargeStrength: -300,
-            linkDistance: 90,
-            centerStrength: 0.04,
-            collisionRadius: 30,
+            chargeStrength: -500,
+            linkDistance: 310,
+            centerStrength: 0.015,
+            collisionRadius: 35,
             alphaDecay: 0.04,
             velocityDecay: 0.35,
 
@@ -350,12 +350,16 @@
 
         // ── Edges ──
         const edgeSel = state.edgeGroup
-            .selectAll(".edge-line")
+            .selectAll(".edge-container")
             .data(edgesArr, d => d.id);
 
-        edgeSel.exit().transition().duration(300).style("stroke-opacity", 0).remove();
+        edgeSel.exit().transition().duration(300).style("opacity", 0).remove();
 
         const edgeEnter = edgeSel.enter()
+            .append("g")
+            .attr("class", "edge-container");
+
+        edgeEnter
             .append("line")
             .attr("class", d => `edge-line ${getEdgeClass(d)}${animate ? " edge-enter" : ""}`)
             .attr("stroke", d => getEdgeColor(d))
@@ -363,9 +367,43 @@
             .attr("stroke-opacity", 0.45)
             .attr("marker-end", d => `url(#arrow-${getEdgeClass(d)})`);
 
+        edgeEnter
+            .append("line")
+            .attr("class", "edge-hitbox")
+            .attr("stroke", "transparent")
+            .attr("stroke-width", 24)
+            .style("cursor", "pointer")
+            .on("click", (event, d) => {
+                event.stopPropagation();
+                const relType = (d.rel_type || d.type || "").toUpperCase();
+                if (relType === "CONTAINS" || relType === "RELATES_TO" || relType === "GAPS") return;
+                openEdgeDetailPanel(d);
+            })
+            .on("mouseenter", function(event, d) {
+                const parentNode = this.parentNode;
+                d3.select(parentNode).select(".edge-line")
+                    .transition().duration(150)
+                    .attr("stroke-opacity", 0.85)
+                    .attr("stroke-width", edgeWidth(d) * 1.8);
+                const label = `${d.type || "edge"} (${Math.round((d.strength || 0) * 100)}%)`;
+                showTooltip(label, event.clientX, event.clientY);
+            })
+            .on("mousemove", (event) => {
+                state.tooltip.style.left = `${event.clientX + 14}px`;
+                state.tooltip.style.top = `${event.clientY - 10}px`;
+            })
+            .on("mouseleave", function(event, d) {
+                const parentNode = this.parentNode;
+                d3.select(parentNode).select(".edge-line")
+                    .transition().duration(150)
+                    .attr("stroke-opacity", 0.45)
+                    .attr("stroke-width", edgeWidth(d));
+                hideTooltip();
+            });
+
         const edgeMerge = edgeEnter.merge(edgeSel);
 
-        edgeMerge
+        edgeMerge.select(".edge-line")
             .attr("stroke", d => getEdgeColor(d))
             .attr("stroke-width", d => edgeWidth(d));
 
@@ -477,7 +515,7 @@
 
     // ─── Tick ───
     function ticked() {
-        state.edgeGroup.selectAll(".edge-line")
+        state.edgeGroup.selectAll(".edge-line, .edge-hitbox")
             .attr("x1", d => d.source.x)
             .attr("y1", d => d.source.y)
             .attr("x2", d => d.target.x)
@@ -645,6 +683,122 @@
                 if (targetNode) openDetailPanel(targetNode);
             });
         });
+    }
+
+    async function openEdgeDetailPanel(edge) {
+        // Show loading state immediately
+        dom.detailPanel.classList.add("open");
+        dom.panelTitle.innerHTML = `<i class="fa-solid fa-arrow-right-arrow-left"></i> Relationship`;
+        dom.panelBody.innerHTML = `
+            <div class="panel-loading">
+                <div class="loading-spinner"></div>
+                <p>Loading relationship details…</p>
+            </div>
+        `;
+
+        try {
+            const res = await fetch(`${CONFIG.api.base}/edge/${encodeURIComponent(edge.id)}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+
+            const { edge: e, source_claim, target_claim, source_paper, target_paper } = data;
+            const edgeType = (e.type || "supports").toLowerCase();
+            const edgeColor = CONFIG.colors[edgeType] || CONFIG.colors.replicates;
+            const strengthPct = Math.round((e.strength || 0) * 100);
+
+            // Set panel title with colored edge type badge
+            dom.panelTitle.innerHTML = `<i class="fa-solid fa-arrow-right-arrow-left"></i> Relationship`;
+
+            let html = "";
+
+            // Edge type badge + strength
+            html += `<div class="panel-badges">
+                ${badge(edgeType.toUpperCase(), esc(`edge-badge edge-type-${edgeType}`))}
+            </div>`;
+
+            // Strength bar
+            html += section("Strength", `
+                <div class="confidence-meter">
+                    <div class="confidence-bar-bg">
+                        <div class="confidence-bar-fill"
+                             style="width:${strengthPct}%;background:${edgeColor}"></div>
+                    </div>
+                    <span class="confidence-value">${strengthPct}%</span>
+                </div>
+            `);
+
+            // Reasoning
+            if (e.reasoning) {
+                html += section("Agent Reasoning", `
+                    <p class="panel-text reasoning-text">${esc(e.reasoning)}</p>
+                `);
+            }
+
+            // Two claims side by side
+            html += `<div class="claims-comparison">
+                <div class="claim-card claim-card-source">
+                    <div class="claim-card-header">
+                        <span class="claim-card-label source-label">
+                            <i class="fa-solid fa-arrow-up-from-bracket"></i> Source Claim
+                        </span>
+                        <span class="claim-card-paper">${esc(source_paper.title || "Unknown paper")}</span>
+                        ${source_paper.year ? `<span class="claim-card-year">${esc(String(source_paper.year))}</span>` : ""}
+                    </div>
+                    <p class="claim-card-text">${esc(source_claim.text || "")}</p>
+                    <div class="claim-card-meta">
+                        ${badge(source_claim.type || "finding", esc(`type-${(source_claim.type || "finding").toLowerCase()}`))}
+                        ${badge(source_claim.section || "unknown", "type-paper")}
+                        <span class="claim-confidence">${Math.round((source_claim.confidence || 0) * 100)}% confidence</span>
+                    </div>
+                    ${source_claim.source_chunk_text ? `
+                    <details class="source-chunk-details">
+                        <summary>Source text</summary>
+                        <p class="panel-text source-chunk-text">${esc(source_claim.source_chunk_text)}</p>
+                    </details>` : ""}
+                </div>
+
+                <div class="claims-vs-divider">
+                    <div class="vs-line"></div>
+                    <span class="vs-badge" style="color:${edgeColor};border-color:${edgeColor}">
+                        ${esc(edgeType.toUpperCase())}
+                    </span>
+                    <div class="vs-line"></div>
+                </div>
+
+                <div class="claim-card claim-card-target">
+                    <div class="claim-card-header">
+                        <span class="claim-card-label target-label">
+                            <i class="fa-solid fa-arrow-down-to-bracket"></i> Target Claim
+                        </span>
+                        <span class="claim-card-paper">${esc(target_paper.title || "Unknown paper")}</span>
+                        ${target_paper.year ? `<span class="claim-card-year">${esc(String(target_paper.year))}</span>` : ""}
+                    </div>
+                    <p class="claim-card-text">${esc(target_claim.text || "")}</p>
+                    <div class="claim-card-meta">
+                        ${badge(target_claim.type || "finding", esc(`type-${(target_claim.type || "finding").toLowerCase()}`))}
+                        ${badge(target_claim.section || "unknown", "type-paper")}
+                        <span class="claim-confidence">${Math.round((target_claim.confidence || 0) * 100)}% confidence</span>
+                    </div>
+                    ${target_claim.source_chunk_text ? `
+                    <details class="source-chunk-details">
+                        <summary>Source text</summary>
+                        <p class="panel-text source-chunk-text">${esc(target_claim.source_chunk_text)}</p>
+                    </details>` : ""}
+                </div>
+            </div>`;
+
+            dom.panelBody.innerHTML = html;
+
+        } catch (err) {
+            console.error("Failed to load edge detail:", err);
+            dom.panelBody.innerHTML = `
+                <div class="panel-error">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <p>Could not load relationship details.</p>
+                    <p class="panel-text" style="opacity:0.5">${esc(err.message)}</p>
+                </div>
+            `;
+        }
     }
 
     function getConnections(nodeId) {
