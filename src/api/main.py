@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from src.api.limiter import limiter
+from src.agents.consensus_explainer import ConsensusExplainerAgent
 
 logger = logging.getLogger(__name__)
 
@@ -93,10 +94,11 @@ async def lifespan(app: FastAPI):
 
     app.state.cartographer = cartographer
 
-    # ── Ready ──────────────────────────────────────────────────────────
-    logger.info("Research Cartographer API startup complete")
+    # ── 5. ConsensusExplainerAgent ─────────────────────────────────────
+    app.state.consensus_explainer = ConsensusExplainerAgent()
 
-    yield  # ── Application runs here ──
+    logger.info("Application startup complete")
+    yield
 
     # ── Shutdown ───────────────────────────────────────────────────────
     logger.info("Shutting down Research Cartographer API")

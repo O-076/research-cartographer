@@ -1,39 +1,39 @@
 # 🤖 AGENTS.md — Instructions for AI Coding Agents
 
-> Primary seed file for Claude Code, GitHub Copilot, Codex, Cursor, and any other AI coding agent.
+> Primary seed file for Claude Code, GitHub Copilot, Codex, Cursor.
 > Read this file fully before writing a single line of code.
-> NEXT_AGENT_PROMPT.md is deprecated — do not create or use it.
+> NEXT_AGENT_PROMPT.md is deleted — do not recreate it.
+> Each feature has its own FEATURE_*.md spec — read it before touching any file.
 
 ---
 
-## Project Status (as of June 7, 2026)
+## Project Status (as of June 8, 2026)
 
 **Core pipeline: COMPLETE and tested.**
-Days 1–8 are fully implemented and verified with real papers.
-The system is running at localhost:8000. Do not refactor working code.
+**P1 Contradiction Drill-Down: COMPLETE and tested.**
+**Current task: P2 Field Consensus Meter + AI Explanation.**
+Spec: `FEATURE_field_consensus_meter.md`
 
 What works today:
-- PDF upload → Foundry IQ → Extractor → Comparator → Gap Finder (OpenAlex) → Neo4j → WebSocket → D3.js graph
+- Full pipeline: PDF → Foundry IQ → Extractor → Comparator → Gap Finder → Neo4j → WebSocket → D3.js
 - A2A orchestration via Microsoft Agent Framework 1.0
 - Live animated force graph with contradiction detection
-- Side panel for node details (click any node)
-- 10-paper performance tested
+- Node detail panel (click any node)
+- Edge drill-down panel (click any edge) — shows two claims + Comparator reasoning
 
-**Current work: Phase 2 research intelligence features.**
-See TODO.md for the prioritized list. Start with the contradiction drill-down.
-The detailed spec for it is in `FEATURE_contradiction_drill_down.md`.
+Do not refactor working code. Do not rename files. Do not restructure the pipeline.
 
 ---
 
-## Non-Negotiables — Do Not Change These
+## Non-Negotiables
 
 - Agent framework: Microsoft Agent Framework 1.0 — not LangChain, not CrewAI
 - Knowledge base: Azure AI Foundry IQ — not a custom vector store
-- Graph DB: Neo4j — all Cypher queries in `graph_manager.py` only
+- Graph DB: Neo4j — all Cypher queries stay in `graph_manager.py` only
 - Backend: FastAPI — not Flask, not Django
-- Frontend graph: D3.js v7 — not Cytoscape, not vis.js
+- Frontend: D3.js v7 — not Cytoscape, not vis.js
 - All secrets via `.env` — never hardcoded, never committed
-- No Cypher queries outside `src/graph/graph_manager.py`
+- No Cypher outside `graph_manager.py`
 - No Azure SDK calls outside agent classes and uploaders
 
 ---
@@ -43,234 +43,194 @@ The detailed spec for it is in `FEATURE_contradiction_drill_down.md`.
 ```
 src/
 ├── agents/
-│   ├── base_agent.py          # BaseAgent: OpenAI + Foundry IQ + retry
-│   ├── cartographer.py        # A2A orchestrator — coordinates pipeline
-│   ├── comparator.py          # Cross-paper edge detection
-│   ├── extractor.py           # Claim extraction per paper
-│   └── gap_finder.py          # Open question discovery via OpenAlex
+│   ├── base_agent.py              # BaseAgent: OpenAI + Foundry IQ + retry + from_env()
+│   ├── cartographer.py            # A2A orchestrator
+│   ├── comparator.py              # Cross-paper edge detection
+│   ├── consensus_explainer.py     # ← NEW (P2): thin BaseAgent for consensus narrative
+│   ├── extractor.py               # Claim extraction per paper
+│   └── gap_finder.py              # Open question discovery via OpenAlex
 ├── api/
 │   ├── routes/
-│   │   ├── graph.py           # GET /graph, GET /edge/{id}, WS /ws/graph
-│   │   └── upload.py          # POST /upload
-│   ├── limiter.py             # Rate limiting
-│   ├── main.py                # FastAPI app entry + lifespan
-│   └── models.py              # Pydantic request/response models
+│   │   ├── graph.py               # GET /graph, GET /edge/{id}, GET /claim/{id}/consensus/explain, WS /ws/graph
+│   │   └── upload.py              # POST /upload
+│   ├── limiter.py                 # Rate limiting (slowapi)
+│   ├── main.py                    # FastAPI app + lifespan (initializes all app.state objects)
+│   └── models.py                  # Pydantic models
 ├── frontend/
 │   ├── favicon.svg
-│   ├── graph.js               # D3.js force graph + WebSocket client
-│   ├── index.html             # Single-page app shell
-│   └── styles.css             # Dark theme, CSS vars, animations
+│   ├── graph.js                   # D3.js force graph + WebSocket + panel logic (IIFE)
+│   ├── index.html                 # Single-page app shell
+│   └── styles.css                 # Dark theme, CSS vars, all animations
 └── graph/
-    ├── delta_emitter.py       # WebSocket pub/sub
-    ├── graph_manager.py       # Neo4j CRUD — ONLY file with Cypher
-    └── schema.py              # Dataclasses, enums, serializers
+    ├── delta_emitter.py           # WebSocket pub/sub
+    ├── graph_manager.py           # Neo4j CRUD — ONLY file with Cypher
+    └── schema.py                  # Dataclasses, enums, serializers
 ```
 
 ---
 
-## Data Schemas (Current — Do Not Change)
+## API Contract (Current + P2)
 
-### Claim node (Neo4j + frontend)
-```python
-{
-    "id": "uuid",
-    "paper_id": "uuid",
-    "text": "str",
-    "type": "finding|method|assumption|limitation",
-    "confidence": 0.0–1.0,
-    "section": "abstract|intro|methods|results|discussion|unknown",
-    "embedding": [float],           # stored in Neo4j, excluded from WS events
-    "source_chunk_text": "str",     # raw text the claim was extracted from
-    "created_at": "iso8601"
-}
+```
+POST /upload                                → { paper_id, status: "queued" }
+GET  /graph                                 → { nodes, edges, questions }
+GET  /paper/{paper_id}/status              → { paper_id, status, progress_pct }
+GET  /edge/{edge_id}                       → EdgeDetailResponse
+GET  /claim/{claim_id}/consensus/explain   → ConsensusExplainResponse  ← P2
 ```
 
-### Edge relationship (Neo4j + frontend)
-```python
-{
-    "id": "uuid",
-    "source_claim_id": "uuid",
-    "target_claim_id": "uuid",
-    "type": "supports|contradicts|extends|replicates|refines",
-    "strength": 0.0–1.0,
-    "reasoning": "str",             # Comparator's explanation
-    "created_at": "iso8601"
-}
-```
-
-### Paper node
-```python
-{
-    "id": "uuid",
-    "title": "str",
-    "authors": ["str"],
-    "year": int | None,
-    "abstract": "str",
-    "status": "queued|extracting|claims_ready|comparing|edges_ready|gap_finding|complete|error"
-}
-```
-
----
-
-## API Contract (Current)
-
-### REST
-```
-POST /upload                        → { paper_id, status: "queued" }
-GET  /graph                         → { nodes, edges, questions }
-GET  /paper/{paper_id}/status       → { paper_id, status, progress_pct }
-GET  /edge/{edge_id}                → EdgeDetailResponse  ← TO BE BUILT
-GET  /claim/{claim_id}/consensus    → ConsensusResponse   ← TO BE BUILT
-GET  /verify?statement={text}       → VerificationResponse ← TO BE BUILT
-```
-
-### WebSocket  `WS /ws/graph`
-```
-Server → Client:
-  { "type": "node_added",         "data": { node },          "timestamp": "iso" }
-  { "type": "edge_added",         "data": { edge },          "timestamp": "iso" }
-  { "type": "edge_updated",       "data": { edge },          "timestamp": "iso" }
-  { "type": "question_added",     "data": { question },      "timestamp": "iso" }
-  { "type": "question_resolved",  "data": { question_id },   "timestamp": "iso" }
-  { "type": "paper_status",       "data": { paper_id, status }, "timestamp": "iso" }
-```
+WebSocket `WS /ws/graph` — server pushes delta events, client listens only.
 
 ---
 
 ## Frontend Architecture (graph.js)
 
-The entire frontend is one IIFE in `graph.js`. Key objects:
+Single IIFE. Key objects:
 
 ```javascript
 state = {
-    nodes: Map<id, node>,       // all nodes keyed by id
-    edges: Map<id, edge>,       // all edges keyed by id
-    simulation: d3.forceSimulation,
-    svg: d3Selection,
-    g: d3Selection,             // main group (zoom/pan target)
-    edgeGroup: d3Selection,     // edges rendered below nodes
-    nodeGroup: d3Selection,     // nodes rendered above edges
-    selectedNodeId: str | null,
-    ws: WebSocket,
-    zoom: d3.zoom
+    nodes: Map<id, node>,
+    edges: Map<id, edge>,   // D3 mutates source/target to objects after simulation start
+    simulation, svg, g, edgeGroup, nodeGroup,
+    selectedNodeId, ws, zoom
 }
 
 dom = {
-    // All DOM element references — populated in init()
-    detailPanel, panelTitle, panelContent,
-    statPapers, statClaims, statEdges, statQuestions, statConcepts,
-    statContradictions, statLimitations,
-    uploadDropzone, fileInput, ...
+    detailPanel,   // #detail-panel
+    panelTitle,    // #panel-title
+    panelBody,     // #panel-body  ← NOT panelContent
+    panelClose,
+    statPapers, statClaims, statEdges, statQuestions, ...
 }
 ```
 
-Key functions:
-- `render(animate: bool)` — debounced (50ms), full D3 update cycle
-- `openDetailPanel(node)` — renders node details in right sidebar
-- `handleWsEvent(msg)` — WebSocket message dispatcher
-- `recomputeDerivedFields()` — recalculates `_connectionCount` and `_hasContradiction` on all nodes
+### Functions already in graph.js — do not redefine
 
-**When adding a new panel type** (e.g., edge detail panel):
-- Add the HTML section to `index.html` inside `#detail-panel`
-- Add the rendering function to `graph.js` (follow `openDetailPanel` pattern)
-- Add CSS to `styles.css` using existing CSS vars
+```javascript
+openDetailPanel(node)          // renders node detail
+openEdgeDetailPanel(edge)      // async, fetches /edge/{id}
+getConnections(nodeId)         // returns connected edges from state.edges
+closeDetailPanel()
+render(animate)                // debounced D3 update
+section(title, contentHtml)   // returns panel section HTML
+badge(text, cls)               // returns badge span HTML
+esc(str)                       // HTML-escapes — always use for user content
+showToast(message, type)
+```
+
+### Edge ID resolution (critical — D3 mutates edges)
+
+```javascript
+const srcId = typeof e.source === "object" ? e.source.id : (e.source_claim_id || e.source);
+const tgtId = typeof e.target === "object" ? e.target.id : (e.target_claim_id || e.target);
+```
+
+Always use this pattern when iterating `state.edges`. See `computeConsensus()` in the feature spec.
+
+### Edge type field
+
+```javascript
+const type = (e.type || e.rel_type || "").toLowerCase();
+// values: "supports", "contradicts", "extends", "replicates", "refines", "contains", "relates_to"
+```
 
 ---
 
-## CSS Design System (styles.css)
-
-All colors via CSS custom properties — never hardcode hex values in JS or HTML:
+## CSS Design System
 
 ```css
 --color-paper: #4a9eff
---color-finding: #00ff88
---color-method: #ffd700
+--color-finding: #00ff88      /* green / supports / consensus */
+--color-method: #ffd700       /* yellow / contested */
 --color-contradiction: #ff4444
 --color-question: #ffffff
 --color-concept: #9b59b6
-
---edge-supports: #00ff88
---edge-contradicts: #ff4444
---edge-extends: #4a9eff
---edge-replicates: #6b7280
---edge-refines: #6b7280
-
 --bg-primary: #0a0a1a
 --bg-glass: rgba(15, 16, 28, 0.72)
 --border-glass: rgba(255, 255, 255, 0.08)
+--border-hover: rgba(255, 255, 255, 0.15)
 --panel-width: 420px
+--radius-sm: 8px
+--radius-md: 14px
+--transition-normal: 0.25s ease
+--transition-fast: 0.15s ease
 ```
 
-Use `backdrop-filter: blur(20px)` for glass panels. Use `var(--transition-normal)` for animations.
+Reuse `.confidence-meter`, `.confidence-bar-bg`, `.confidence-bar-fill` for any percentage bar.
+Use `backdrop-filter: blur(20px)` for glass panels.
+Never hardcode hex values in JS or HTML — always `CONFIG.colors.*` or CSS vars.
 
 ---
 
-## graph_manager.py Conventions
-
-Every new query follows this pattern:
+## graph_manager.py Pattern
 
 ```python
 # Read query
-async def get_something(self, param: str) -> list[dict[str, Any]]:
-    query = """
-    MATCH (n:NodeType {id: $id})
-    RETURN n
-    """
-    return await self._read_nodes(query, {"id": param}, "n")
+async def get_something(self, param: str) -> dict | None:
+    query = "MATCH (n:Node {id: $id}) RETURN n"
+    async with self._driver.session() as session:
+        result = await session.run(query, {"id": param})
+        record = await result.single()
+        if not record:
+            return None
+        return dict(record["n"])
 
-# Write query
-async def add_something(self, obj: SomeDataclass) -> None:
+# Multi-node query (edge + connected nodes)
+async def get_complex(self, param: str) -> dict | None:
     query = """
-    MERGE (n:NodeType {id: $id})
-    SET n += $props
+    MATCH (a)-[r]->(b)
+    WHERE r.id = $id
+    RETURN a, r, b
     """
-    await self._write(query, {"id": obj.id, "props": to_props(obj)}, "add_something")
+    async with self._driver.session() as session:
+        result = await session.run(query, {"id": param})
+        record = await result.single()
+        if not record:
+            return None
+        return {"a": dict(record["a"]), "r": dict(record["r"]), "b": dict(record["b"])}
 ```
 
-For queries returning multiple node types (e.g., edge + two claims + two papers):
-use `_read_raw(query, params)` which returns raw Neo4j records.
+For UNION ALL queries (see `get_claim_consensus_context`), collect with:
+```python
+records = [dict(r) async for r in edges_result]
+```
 
 ---
 
-## models.py Conventions
-
-Every new endpoint gets a Pydantic response model:
+## app.state Objects (set in main.py lifespan)
 
 ```python
-class EdgeDetailResponse(BaseModel):
-    edge: dict[str, Any]
-    source_claim: dict[str, Any]
-    target_claim: dict[str, Any]
-    source_paper: dict[str, Any]
-    target_paper: dict[str, Any]
+app.state.graph_manager       # GraphManager — Neo4j interface
+app.state.cartographer        # CartographerAgent — pipeline orchestrator
+app.state.delta_emitter       # DeltaEmitter — WebSocket pub/sub
+app.state.consensus_explainer # ConsensusExplainerAgent ← added in P2
 ```
+
+Access in route handlers via `request.app.state.*`.
+
+---
+
+## BaseAgent.from_env()
+
+All agents call `ClassName.from_env()` for instantiation — reads from environment variables.
+`ConsensusExplainerAgent` inherits this from `BaseAgent`. No custom `__init__` needed.
 
 ---
 
 ## Security Rules
 
-- All credentials in `.env` only — see SECURITY.md
+- All credentials in `.env` only
 - Run `git diff --cached` before every commit
-- Never commit `.env` — it is gitignored
+- `.env` is gitignored — never commit it
 - No real values in `.env.example`
-- No PII, no internal Microsoft info, no API keys in code or comments
+- No PII, no internal Microsoft info in code or comments
 
 ---
 
 ## Priorities for AI Agents
 
-1. **Never break working code.** The pipeline runs. Don't refactor it.
-2. **Phase 2 features in order** — see TODO.md. Contradiction drill-down is next.
-3. **Read the feature spec file** before implementing any Phase 2 feature.
-4. **Demo video papers** — transformer papers listed in TODO.md. Use these.
-5. **Submission deadline: June 14, 2026 11:59 PM PT.** No extensions.
-
----
-
-## Key Links
-
-- Foundry IQ docs: https://learn.microsoft.com/azure/foundry/agents/concepts/what-is-foundry-iq
-- A2A Protocol: https://aka.ms/a2a
-- IQ Series: https://aka.ms/iq-series
-- Discord: https://aka.ms/agentsleague/discord
-- Foundry Forum: https://aka.ms/foundry/forum
+1. Never break working code
+2. Read the FEATURE_*.md spec before touching any file
+3. Implement in file order as listed in the spec
+4. After completing a feature: delete FEATURE_*.md, tick TODO.md
+5. Deadline: **June 14, 2026 11:59 PM PT**

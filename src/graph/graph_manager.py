@@ -292,6 +292,61 @@ class GraphManager:
                 },
             }
 
+    async def get_claim_consensus_context(
+        self, claim_id: str
+    ) -> dict[str, Any] | None:
+        """Fetch a claim, its paper, and all semantic edges with connected claims.
+
+        Used by ConsensusExplainerAgent to build its prompt.
+        Returns None if the claim is not found.
+        """
+        # Query 1: get the claim and its paper
+        claim_query = """
+        MATCH (c:Claim {id: $claim_id})
+        OPTIONAL MATCH (p:Paper)-[:CONTAINS]->(c)
+        RETURN c.id AS id, c.text AS text, c.type AS type,
+               c.confidence AS confidence, c.section AS section,
+               p.title AS paper_title
+        """
+        # Query 2: get all semantic edges in both directions with connected claims/papers
+        edges_query = """
+        MATCH (c:Claim {id: $claim_id})-[r]->(other:Claim)
+        WHERE type(r) IN ['SUPPORTS','CONTRADICTS','EXTENDS','REPLICATES','REFINES']
+        OPTIONAL MATCH (op:Paper)-[:CONTAINS]->(other)
+        RETURN type(r) AS edge_type, r.strength AS strength,
+               r.reasoning AS reasoning, other.text AS other_claim_text,
+               coalesce(op.title, 'Unknown paper') AS other_paper_title,
+               'outgoing' AS direction
+        UNION ALL
+        MATCH (other:Claim)-[r]->(c:Claim {id: $claim_id})
+        WHERE type(r) IN ['SUPPORTS','CONTRADICTS','EXTENDS','REPLICATES','REFINES']
+        OPTIONAL MATCH (op:Paper)-[:CONTAINS]->(other)
+        RETURN type(r) AS edge_type, r.strength AS strength,
+               r.reasoning AS reasoning, other.text AS other_claim_text,
+               coalesce(op.title, 'Unknown paper') AS other_paper_title,
+               'incoming' AS direction
+        """
+        async with self._driver.session() as session:
+            claim_result = await session.run(claim_query, {"claim_id": claim_id})
+            claim_record = await claim_result.single()
+            if not claim_record:
+                return None
+
+            edges_result = await session.run(edges_query, {"claim_id": claim_id})
+            edge_records = [dict(r) async for r in edges_result]
+
+        return {
+            "claim": {
+                "id": claim_record["id"],
+                "text": claim_record["text"],
+                "type": claim_record["type"],
+                "confidence": claim_record["confidence"],
+                "section": claim_record["section"],
+                "paper_title": claim_record["paper_title"] or "Unknown paper",
+            },
+            "semantic_edges": edge_records,
+        }
+
     async def update_edge(self, edge: Edge) -> None:
         """Update an existing edge's properties (re-scoring)."""
         rel_type = EDGE_TYPE_TO_NEO4J.get(edge.type)

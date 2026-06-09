@@ -585,6 +585,54 @@
         if (dom.statLimitations) dom.statLimitations.textContent = limitations;
     }
 
+    // ─── Field Consensus Meter ───
+    function computeConsensus(claimId) {
+        // Reads state.edges to compute a weighted consensus score.
+        // Returns null when no cross-paper semantic edges exist (single paper loaded).
+        // CONTAINS and RELATES_TO edges are excluded — semantic only.
+
+        const SEMANTIC_TYPES = new Set([
+            "supports", "contradicts", "extends", "replicates", "refines"
+        ]);
+        const SUPPORT_WEIGHT = { supports: 1.0, replicates: 1.0, extends: 0.5, refines: 0.5 };
+
+        let supportScore = 0, disputeScore = 0;
+        let supportCount = 0, disputeCount = 0, extendCount = 0;
+
+        state.edges.forEach(e => {
+            const srcId = typeof e.source === "object" ? e.source.id : (e.source_claim_id || e.source);
+            const tgtId = typeof e.target === "object" ? e.target.id : (e.target_claim_id || e.target);
+            if (srcId !== claimId && tgtId !== claimId) return;
+
+            const type = (e.type || e.rel_type || "").toLowerCase();
+            if (!SEMANTIC_TYPES.has(type)) return;
+
+            const strength = typeof e.strength === "number" ? e.strength : 0.5;
+
+            if (type === "contradicts") {
+                disputeScore += strength;
+                disputeCount++;
+            } else if (type === "extends" || type === "refines") {
+                supportScore += strength * (SUPPORT_WEIGHT[type] || 0.5);
+                extendCount++;
+            } else {
+                supportScore += strength * (SUPPORT_WEIGHT[type] || 1.0);
+                supportCount++;
+            }
+        });
+
+        const totalScore = supportScore + disputeScore;
+        if (totalScore === 0) return null;
+
+        return {
+            consensusPct: Math.round((supportScore / totalScore) * 100),
+            supportCount,
+            disputeCount,
+            extendCount,
+            totalEdges: supportCount + disputeCount + extendCount,
+        };
+    }
+
     // ─── Detail Panel ───
     function openDetailPanel(node) {
         state.selectedNodeId = node.id;
@@ -626,6 +674,55 @@
                     </div>
                 `);
             }
+        // ── Field Consensus Meter ──────────────────────────────
+        const consensus = computeConsensus(node.id);
+        if (consensus === null) {
+            html += section("Field Consensus", `
+                <p class="panel-text consensus-empty">
+                    <i class="fa-solid fa-circle-info" style="opacity:0.5"></i>
+                    No cross-paper data yet — upload more papers on the same topic.
+                </p>
+            `);
+        } else {
+            const pct = consensus.consensusPct;
+            const barColor = pct >= 70 ? CONFIG.colors.finding
+                : pct >= 40 ? CONFIG.colors.method
+                : CONFIG.colors.contradiction;
+
+            const parts = [];
+            if (consensus.supportCount > 0)
+                parts.push(`${consensus.supportCount} support${consensus.supportCount > 1 ? "s" : ""}`);
+            if (consensus.disputeCount > 0)
+                parts.push(`${consensus.disputeCount} dispute${consensus.disputeCount > 1 ? "s" : ""}`);
+            if (consensus.extendCount > 0)
+                parts.push(`${consensus.extendCount} extend${consensus.extendCount > 1 ? "s" : ""}`);
+
+            const label = pct >= 70 ? "Consensus" : pct >= 40 ? "Contested" : "Disputed";
+
+            html += section("Field Consensus", `
+                <div class="consensus-meter">
+                    <div class="confidence-meter">
+                        <div class="confidence-bar-bg">
+                            <div class="confidence-bar-fill" style="width:${pct}%;background:${barColor}"></div>
+                        </div>
+                        <span class="confidence-value">${pct}%</span>
+                    </div>
+                    <div class="consensus-footer">
+                        <span class="consensus-label" style="color:${barColor}">${esc(label)}</span>
+                        <span class="consensus-breakdown">${esc(parts.join(" · "))}</span>
+                    </div>
+                    <div class="consensus-explain-area">
+                        <button class="consensus-explain-btn"
+                                data-claim-id="${esc(node.id)}"
+                                data-consensus-pct="${pct}">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI to explain
+                        </button>
+                        <div class="consensus-explanation hidden"></div>
+                    </div>
+                </div>
+            `);
+        }
+        // ── End Field Consensus Meter ──────────────────────────
             if (node.source_chunk_text) {
                 html += section("Source Text", `<p class="panel-text" style="font-style:italic;opacity:0.8">"${esc(node.source_chunk_text)}"</p>`);
             }
@@ -674,6 +771,16 @@
         }
 
         dom.panelBody.innerHTML = html;
+
+        // Bind consensus explain button
+        const explainBtn = dom.panelBody.querySelector(".consensus-explain-btn");
+        if (explainBtn) {
+            explainBtn.addEventListener("click", () => {
+                const claimId = explainBtn.dataset.claimId;
+                const pct = parseInt(explainBtn.dataset.consensusPct, 10);
+                explainConsensus(claimId, pct, explainBtn);
+            });
+        }
 
         // Bind connection clicks
         dom.panelBody.querySelectorAll(".connection-item").forEach(el => {
@@ -798,6 +905,38 @@
                     <p class="panel-text" style="opacity:0.5">${esc(err.message)}</p>
                 </div>
             `;
+        }
+    }
+
+    async function explainConsensus(claimId, consensusPct, btn) {
+        // Disable button and show loading state
+        btn.disabled = true;
+        btn.innerHTML = `<div class="loading-spinner" style="width:14px;height:14px;border-width:2px;margin:0"></div> Analyzing…`;
+
+        const explanationDiv = btn.closest(".consensus-explain-area").querySelector(".consensus-explanation");
+        explanationDiv.classList.add("hidden");
+        explanationDiv.textContent = "";
+
+        try {
+            const res = await fetch(
+                `${CONFIG.api.base}/claim/${encodeURIComponent(claimId)}/consensus/explain`
+            );
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+
+            explanationDiv.textContent = data.explanation;
+            explanationDiv.classList.remove("hidden");
+            explanationDiv.classList.add("consensus-explanation-appear");
+
+            // Replace button with a subtle re-ask option
+            btn.innerHTML = `<i class="fa-solid fa-rotate-right"></i> Re-explain`;
+            btn.disabled = false;
+
+        } catch (err) {
+            console.error("Consensus explain failed:", err);
+            btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles"></i> Ask AI to explain`;
+            btn.disabled = false;
+            showToast("Could not generate explanation", "error");
         }
     }
 
@@ -999,16 +1138,31 @@
 
     function handleEdgeAdded(data) {
         const edge = data.edge || data;
+        if (!edge.source) edge.source = edge.source_claim_id;
+        if (!edge.target) edge.target = edge.target_claim_id;
+        
         state.edges.set(edge.id, edge);
         render(true);
 
         if (edge.type === "contradicts") {
             showToast("⚡ Contradiction detected!", "error");
         }
+        
+        // Refresh panel if affected
+        if (state.selectedNodeId) {
+            const srcId = typeof edge.source === "object" ? edge.source.id : (edge.source_claim_id || edge.source);
+            const tgtId = typeof edge.target === "object" ? edge.target.id : (edge.target_claim_id || edge.target);
+            if (srcId === state.selectedNodeId || tgtId === state.selectedNodeId) {
+                const node = state.nodes.get(state.selectedNodeId);
+                if (node) openDetailPanel(node);
+            }
+        }
     }
 
     function handleEdgeUpdated(data) {
         const edge = data.edge || data;
+        if (!edge.source) edge.source = edge.source_claim_id;
+        if (!edge.target) edge.target = edge.target_claim_id;
         const existing = state.edges.get(edge.id);
         if (existing) {
             Object.assign(existing, edge);
@@ -1048,6 +1202,11 @@
 
         if (status === "complete") {
             showToast("🎉 Paper analysis complete!", "success");
+            // Refresh the detail panel to recalculate consensus and connections
+            if (state.selectedNodeId) {
+                const selectedNode = state.nodes.get(state.selectedNodeId);
+                if (selectedNode) openDetailPanel(selectedNode);
+            }
         } else if (status === "error") {
             showToast("⚠️ Error processing paper", "error");
         }

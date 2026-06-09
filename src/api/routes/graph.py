@@ -4,7 +4,10 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
-from src.api.models import GraphResponse, PaperStatusResponse, PIPELINE_PROGRESS, EdgeDetailResponse
+from src.api.models import (
+    GraphResponse, PaperStatusResponse, PIPELINE_PROGRESS,
+    EdgeDetailResponse, ConsensusExplainResponse,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +82,55 @@ async def get_edge_detail(
     if result is None:
         raise HTTPException(status_code=404, detail=f"Edge {edge_id!r} not found")
     return EdgeDetailResponse(**result)
+
+
+# ---------------------------------------------------------------------------
+# REST — consensus explanation
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/claim/{claim_id}/consensus/explain",
+    response_model=ConsensusExplainResponse,
+)
+async def explain_claim_consensus(
+    claim_id: str,
+    request: Request,
+) -> ConsensusExplainResponse:
+    """Generate an AI explanation of field consensus for a given claim."""
+    graph_manager = request.app.state.graph_manager
+    explainer = request.app.state.consensus_explainer
+
+    context = await graph_manager.get_claim_consensus_context(claim_id)
+    if context is None:
+        raise HTTPException(status_code=404, detail=f"Claim {claim_id!r} not found")
+
+    claim = context["claim"]
+    semantic_edges = context["semantic_edges"]
+
+    # Compute consensus_pct server-side (same formula as frontend)
+    support_score = sum(
+        (e.get("strength") or 0.5) * (0.5 if e["edge_type"] in ("EXTENDS", "REFINES") else 1.0)
+        for e in semantic_edges if e["edge_type"] != "CONTRADICTS"
+    )
+    dispute_score = sum(
+        (e.get("strength") or 0.5)
+        for e in semantic_edges if e["edge_type"] == "CONTRADICTS"
+    )
+    total = support_score + dispute_score
+    consensus_pct = round((support_score / total) * 100) if total > 0 else None
+
+    explanation = await explainer.explain(
+        claim_text=claim["text"],
+        paper_title=claim["paper_title"],
+        consensus_pct=consensus_pct or 0,
+        semantic_edges=semantic_edges,
+    )
+
+    return ConsensusExplainResponse(
+        claim_id=claim_id,
+        explanation=explanation,
+        consensus_pct=consensus_pct,
+    )
 
 
 # ---------------------------------------------------------------------------

@@ -49,6 +49,14 @@ class EdgeDetailResponse(BaseModel):
     target_paper: dict[str, Any]
 
 
+class ConsensusExplainResponse(BaseModel):
+    """Returned by GET /claim/{claim_id}/consensus/explain."""
+
+    claim_id: str
+    explanation: str
+    consensus_pct: int | None = None
+
+
 # ---------------------------------------------------------------------------
 # WebSocket delta event models
 # ---------------------------------------------------------------------------

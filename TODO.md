@@ -6,109 +6,114 @@
 
 ## Days 1–8: Core Pipeline ✅ COMPLETE
 
-All pipeline work is done and tested. See git history for details.
-Summary: PDF ingestion → Foundry IQ → Extractor → Comparator → Gap Finder (OpenAlex) →
-Neo4j → FastAPI WebSocket → D3.js force graph — fully operational with A2A orchestration.
-
----
-
-## Day 8–9: Demo Video ← DO THIS FIRST
-
-- ⬜ Download 5 papers from the same domain (recommended: transformer architecture papers from arXiv)
-  - "Attention Is All You Need" (Vaswani et al. 2017)
-  - "BERT: Pre-training of Deep Bidirectional Transformers" (Devlin et al. 2018)
-  - "RoBERTa: A Robustly Optimized BERT Pretraining Approach" (Liu et al. 2019)
-  - "Longformer: The Long-Document Transformer" (Beltagy et al. 2020)
-  - "Are Transformers Effective for Time Series Forecasting?" (Zeng et al. 2022) ← known contrarian paper, will generate red edges
-- ⬜ Script the 60-second demo sequence (see PLAN.md)
-- ⬜ Record at 1920×1080, 60fps
-- ⬜ Edit to 2–3 minutes max
-- ⬜ Upload to YouTube (unlisted) and add link to README
+Full pipeline operational and tested: PDF ingestion → Foundry IQ → Extractor → Comparator →
+Gap Finder (OpenAlex) → Neo4j → FastAPI WebSocket → D3.js force graph + A2A orchestration.
 
 ---
 
 ## Phase 2: Research Intelligence Features
 
-### P1 — Contradiction Drill-Down ✅ COMPLETED
+### P1 — Contradiction Drill-Down ✅ COMPLETE AND TESTED
 
-- ✅ **Backend**: Add `get_edge_with_claims(edge_id)` to `graph_manager.py`
-- ✅ **Backend**: Add `GET /edge/{edge_id}` endpoint to `src/api/routes/graph.py`
-- ✅ **Backend**: Add `EdgeDetailResponse` Pydantic model to `src/api/models.py`
-- ✅ **Frontend**: Add click handler on edge `<line>` elements in `graph.js`
-- ✅ **Frontend**: Add `openEdgeDetailPanel(edge)` function in `graph.js`
-- ✅ **Frontend**: Add edge detail panel HTML section in `index.html`
-- ✅ **Frontend**: Add CSS for edge panel, claim cards, VS divider in `styles.css`
-- ✅ Test: click a CONTRADICTS edge → panel shows two claims side by side
-- ✅ Test: reasoning text, strength bar, source paper info all render correctly
+Backend: `get_edge_with_claims()`, `GET /edge/{edge_id}`, `EdgeDetailResponse`.
+Frontend: edge click handler, `openEdgeDetailPanel()`, CSS.
 
-### P2 — Field Consensus Meter
+---
 
-- ⬜ Add `get_claim_consensus(claim_id)` to `graph_manager.py`
-  - Cypher: count SUPPORTS vs CONTRADICTS edges, weight by strength
-  - Returns: `{ support_pct, against_pct, neutral_pct, total_edges }`
-- ⬜ Add `GET /claim/{claim_id}/consensus` endpoint
-- ⬜ Add arc gauge component to the Claim node detail panel in `graph.js`
-- ⬜ Test with a claim that has multiple edges of different types
+### P2 — Field Consensus Meter + AI Explanation ← BUILD NEXT
+
+Full spec in `FEATURE_field_consensus_meter.md`. Two parts — implement in order.
+
+**Part 1: Auto-computed bar (frontend only)**
+- ⬜ Add `computeConsensus(claimId)` to `graph.js` before `openDetailPanel()`
+- ⬜ Insert consensus meter HTML into Claim branch of `openDetailPanel()`
+- ⬜ Bind explain button click handler after `dom.panelBody.innerHTML = html`
+- ⬜ Add Part 1 CSS to end of `styles.css`
+- ⬜ Test: 1 paper → "No cross-paper data yet" message
+- ⬜ Test: 2+ papers → bar renders with correct color + breakdown
+
+**Part 2: AI explanation button (backend + frontend)**
+- ⬜ Create `src/agents/consensus_explainer.py`
+- ⬜ Add `get_claim_consensus_context()` to `graph_manager.py`
+- ⬜ Add `ConsensusExplainResponse` to `models.py`
+- ⬜ Add `GET /claim/{claim_id}/consensus/explain` to `graph.py` routes
+- ⬜ Initialize `ConsensusExplainerAgent.from_env()` in `main.py` lifespan
+- ⬜ Add `explainConsensus()` async function to `graph.js`
+- ⬜ Add Part 2 CSS to end of `styles.css`
+- ⬜ Test: button click → loading state → explanation fades in
+- ⬜ Test: explanation is 2-3 sentences, mentions specific papers
+- ⬜ Test: Re-explain works, network errors show toast
+- ⬜ Delete `FEATURE_field_consensus_meter.md` after completion
+
+---
 
 ### P3 — Claim Verification
 
-- ⬜ Add search box to the UI (keyboard shortcut: `/` to focus)
+- ⬜ Add search box to UI (keyboard shortcut `/` to focus)
 - ⬜ Add `GET /verify?statement={text}` endpoint
-  - Embeds the statement text
-  - Queries Neo4j for top-5 most similar claims by cosine similarity
-  - Returns: `{ supports: [...], contradicts: [...], neutral: [...] }`
-- ⬜ Add verification results panel in `index.html`
-- ⬜ Style results with green/red/grey claim cards
+- ⬜ Embed statement, query Neo4j top-5 similar claims by cosine similarity
+- ⬜ Return `{ supports: [...], contradicts: [...], neutral: [...] }`
+- ⬜ Render results panel
 
 ### P4 — Research Thread Tracer
 
 - ⬜ Add `GET /trace?from={node_id}&to={node_id}` endpoint
-  - Uses Neo4j shortest path query across all edge types
-  - Returns: ordered list of nodes + edges forming the reasoning chain
-  - Falls back to LLM-generated narrative if no direct path exists
-- ⬜ Add "Trace Thread" button when two nodes are selected (shift+click second node)
-- ⬜ Highlight the path in the graph with animated pulsing
+- ⬜ Neo4j shortest path across all edge types
+- ⬜ Shift+click second node to trigger
+- ⬜ Highlight path in graph with animated pulsing
 
 ### P5 — Literature Review Generator
 
-- ⬜ Add `POST /generate/review` endpoint (async, streams via SSE)
-  - Agent walks graph: most-connected concepts → support/contradiction clusters → gaps
-  - Outputs structured markdown: intro, thematic sections, contradictions callout, gaps
-- ⬜ Add "Generate Review" button to the UI
-- ⬜ Show streaming output in a modal with copy-to-clipboard
+- ⬜ Add `POST /generate/review` endpoint (SSE streaming)
+- ⬜ Agent walks graph: concepts → clusters → gaps
+- ⬜ Stream markdown to modal with copy button
 
 ### P6 — Relationship Filter Bar
 
-- ⬜ Add filter strip above graph: `All · Supports · Contradicts · Extends · Questions`
-- ⬜ Clicking a filter dims all non-matching edges and their unconnected nodes
-- ⬜ Pure frontend — no API calls needed
+- ⬜ Filter strip: `All · Supports · Contradicts · Extends · Questions`
+- ⬜ Dims non-matching edges and unconnected nodes
+- ⬜ Pure frontend
 
 ### P7 — Batch Upload
 
-- ⬜ Allow multi-file drop (up to 5 PDFs at once)
-- ⬜ Show per-file progress indicators
-- ⬜ Launch all pipelines in parallel via `asyncio.gather()`
-- ⬜ Graph explodes into life from multiple directions simultaneously
+- ⬜ Multi-file drop (up to 5 PDFs)
+- ⬜ Per-file progress indicators
+- ⬜ Parallel pipelines via `asyncio.gather()`
 
 ---
 
-## Day 9: Submission Checklist ← Do the day BEFORE submission
+## Demo Video ← DO AFTER P2
+
+- ⬜ Download 5 transformer papers from arXiv:
+  - Attention Is All You Need (Vaswani et al. 2017)
+  - BERT (Devlin et al. 2018)
+  - RoBERTa (Liu et al. 2019)
+  - Longformer (Beltagy et al. 2020)
+  - Are Transformers Effective for Time Series? (Zeng et al. 2022) ← generates red edges
+- ⬜ Script the sequence: empty graph → papers added one by one → graph thinks live →
+      click contradiction edge (drill-down) → click disputed claim (consensus meter + explain)
+- ⬜ Record at 1920×1080, 60fps
+- ⬜ Edit to 2–3 minutes max
+- ⬜ Upload to YouTube (unlisted), add link to README
+
+---
+
+## Day 9: Submission Checklist ← Do the day BEFORE June 14
 
 - ⬜ `git log --all --full-history -- .env` → confirm .env never committed
-- ⬜ `git diff HEAD` → no secrets, no hardcoded values, no TODO in shipped code
 - ⬜ Verify `.env.example` has only placeholder values
-- ⬜ Delete `NEXT_AGENT_PROMPT.md` if still present
-- ⬜ README: add demo video link, add A2A fallback note, verify setup instructions
+- ⬜ Confirm NEXT_AGENT_PROMPT.md is deleted
+- ⬜ All FEATURE_*.md files deleted
+- ⬜ README: add demo video link, verify setup instructions accurate
 - ⬜ Confirm repo is public on GitHub
-- ⬜ Submit on hackathon platform before **11:59 PM PT June 14, 2026**
-- ⬜ Post in Discord for community vote: https://aka.ms/agentsleague/discord
+- ⬜ Submit before **11:59 PM PT June 14, 2026**
+- ⬜ Post in Discord: https://aka.ms/agentsleague/discord
 
 ---
 
-## Backlog (Post-submission / Nice to Have)
+## Backlog (Post-submission)
 
-- ⬜ Time travel slider (scrub graph to see it build paper-by-paper)
-- ⬜ Graph export as PNG (html2canvas)
+- ⬜ Time travel slider
+- ⬜ Graph export as PNG
 - ⬜ Docker Compose for local Neo4j
 - ⬜ Azure Container Apps deployment
-- ⬜ Automated tests with pytest
