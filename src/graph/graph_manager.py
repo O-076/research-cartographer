@@ -150,6 +150,26 @@ class GraphManager:
         """
         return await self._read_nodes(query, {"paper_id": paper_id}, "c")
 
+    async def get_claims_for_verification(self) -> list[dict[str, Any]]:
+        """Return all claims with embeddings and paper titles for verification.
+
+        Only returns claims that have a non-empty embedding vector.
+        Excludes source_chunk_text and section to keep the payload lean.
+        """
+        query = """
+        MATCH (p:Paper)-[:CONTAINS]->(c:Claim)
+        WHERE c.embedding IS NOT NULL AND size(c.embedding) > 0
+        RETURN c.id        AS id,
+               c.text      AS text,
+               c.type      AS type,
+               c.paper_id  AS paper_id,
+               c.embedding AS embedding,
+               p.title     AS paper_title
+        """
+        async with self._driver.session() as session:
+            result = await session.run(query, {})
+            return [dict(r) async for r in result]
+
     # ------------------------------------------------------------------
     # Edge (Relationship) CRUD
     # ------------------------------------------------------------------

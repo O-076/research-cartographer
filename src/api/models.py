@@ -57,6 +57,27 @@ class ConsensusExplainResponse(BaseModel):
     consensus_pct: int | None = None
 
 
+class VerificationResultItem(BaseModel):
+    """A single claim result from GET /verify."""
+
+    claim_id: str
+    claim_text: str
+    paper_title: str
+    relation: str        # "supports" | "contradicts" | "neutral"
+    reason: str
+    similarity_score: float
+
+
+class VerificationResponse(BaseModel):
+    """Returned by GET /verify."""
+
+    statement: str
+    supports: list[VerificationResultItem]
+    contradicts: list[VerificationResultItem]
+    neutral: list[VerificationResultItem]
+    total_claims_checked: int
+
+
 # ---------------------------------------------------------------------------
 # WebSocket delta event models
 # ---------------------------------------------------------------------------

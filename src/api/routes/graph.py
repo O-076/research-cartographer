@@ -2,11 +2,12 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect, Query
 
 from src.api.models import (
     GraphResponse, PaperStatusResponse, PIPELINE_PROGRESS,
     EdgeDetailResponse, ConsensusExplainResponse,
+    VerificationResultItem, VerificationResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,45 @@ async def explain_claim_consensus(
         claim_id=claim_id,
         explanation=explanation,
         consensus_pct=consensus_pct,
+    )
+
+
+# ---------------------------------------------------------------------------
+# REST — claim verification
+# ---------------------------------------------------------------------------
+
+@router.get("/verify", response_model=VerificationResponse)
+async def verify_statement(
+    request: Request,
+    statement: str = Query(..., min_length=5, max_length=500,
+                           description="Statement to verify against the corpus"),
+) -> VerificationResponse:
+    """Verify a user-supplied statement against all claims in the corpus.
+
+    Embeds the statement, pre-filters by cosine similarity, then classifies
+    each candidate claim as supporting, contradicting, or neutral in a single
+    batched LLM call.
+    """
+    graph_manager = request.app.state.graph_manager
+    verifier = request.app.state.claim_verifier
+
+    claims = await graph_manager.get_claims_for_verification()
+
+    if not claims:
+        return VerificationResponse(
+            statement=statement,
+            supports=[], contradicts=[], neutral=[],
+            total_claims_checked=0,
+        )
+
+    result = await verifier.verify(statement=statement, claims=claims)
+
+    return VerificationResponse(
+        statement=statement,
+        supports=[VerificationResultItem(**r) for r in result["supports"]],
+        contradicts=[VerificationResultItem(**r) for r in result["contradicts"]],
+        neutral=[VerificationResultItem(**r) for r in result["neutral"]],
+        total_claims_checked=result["total_claims_checked"],
     )
 
 

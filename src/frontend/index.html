@@ -63,6 +63,9 @@
                 <span class="stat"><span class="stat-icon"><i class="fa-solid fa-triangle-exclamation" style="color: #ff8c42;"></i></span> <span id="stat-limitations">0</span><span class="stat-label">Limitations</span></span>
                 <span class="stat"><span class="stat-icon"><i class="fa-solid fa-bolt" style="color: #ff4444;"></i></span> <span id="stat-contradictions">0</span><span class="stat-label">Contradictions</span></span>
             </div>
+            <button id="search-btn" class="header-search-btn" title="Verify a claim (press /)">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
         </div>
     </header>
 
@@ -169,5 +172,27 @@
 
     <!-- Graph JS -->
     <script src="/static/graph.js?v=3"></script>
+
+    <!-- ── Search / Verification Overlay ─────────────────── -->
+    <div id="search-overlay" class="search-overlay hidden" role="dialog" aria-modal="true">
+        <div class="search-container">
+            <div class="search-input-wrap">
+                <i class="fa-solid fa-magnifying-glass search-input-icon"></i>
+                <input
+                    type="text"
+                    id="search-input"
+                    class="search-input"
+                    placeholder="Type a statement to verify against the corpus…"
+                    maxlength="500"
+                    autocomplete="off"
+                    spellcheck="false"
+                />
+                <kbd class="search-enter-hint">↵</kbd>
+            </div>
+            <p class="search-hint-text">
+                <kbd>Enter</kbd> to verify &nbsp;·&nbsp; <kbd>Esc</kbd> to close
+            </p>
+        </div>
+    </div>
 </body>
 </html>

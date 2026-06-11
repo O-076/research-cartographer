@@ -89,6 +89,8 @@
         fetchInitialGraph().then(() => {
             connectWebSocket();
         });
+        
+        initSearch();
     }
 
     function cacheDom() {
@@ -115,6 +117,9 @@
         dom.statClaims = document.getElementById("stat-claims");
         dom.statEdges = document.getElementById("stat-edges");
         dom.statQuestions = document.getElementById("stat-questions");
+        dom.searchBtn = document.getElementById("search-btn");
+        dom.searchOverlay = document.getElementById("search-overlay");
+        dom.searchInput = document.getElementById("search-input");
     }
 
     // ─── Tooltip ───
@@ -634,6 +639,174 @@
     }
 
     // ─── Detail Panel ───
+// ─── Search / Claim Verification ─────────────────────────────────────────
+
+    function initSearch() {
+        // Press "/" to open (only when focus is on body, not an input)
+        document.addEventListener("keydown", e => {
+            if (e.key === "/" && e.target === document.body) {
+                e.preventDefault();
+                openSearchOverlay();
+            }
+            if (e.key === "Escape") closeSearchOverlay();
+        });
+
+        if (dom.searchBtn) {
+            dom.searchBtn.addEventListener("click", openSearchOverlay);
+        }
+
+        if (dom.searchInput) {
+            dom.searchInput.addEventListener("keydown", e => {
+                if (e.key === "Enter") {
+                    const stmt = dom.searchInput.value.trim();
+                    if (stmt.length >= 5) {
+                        closeSearchOverlay();
+                        verifyStatement(stmt);
+                    }
+                }
+                if (e.key === "Escape") {
+                    closeSearchOverlay();
+                }
+            });
+        }
+
+        // Click backdrop to close
+        if (dom.searchOverlay) {
+            dom.searchOverlay.addEventListener("click", e => {
+                if (e.target === dom.searchOverlay) closeSearchOverlay();
+            });
+        }
+    }
+
+    function openSearchOverlay() {
+        if (!dom.searchOverlay) return;
+        dom.searchOverlay.classList.remove("hidden");
+        setTimeout(() => dom.searchInput && dom.searchInput.focus(), 50);
+    }
+
+    function closeSearchOverlay() {
+        if (!dom.searchOverlay) return;
+        dom.searchOverlay.classList.add("hidden");
+        if (dom.searchInput) dom.searchInput.value = "";
+    }
+
+    async function verifyStatement(statement) {
+        // Show loading state in side panel immediately
+        dom.detailPanel.classList.add("open");
+        dom.panelTitle.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Verifying…`;
+        dom.panelBody.innerHTML = `
+            <div class="panel-loading">
+                <div class="loading-spinner"></div>
+                <p>Checking statement against ${state.nodes.size} corpus claims…</p>
+            </div>
+        `;
+
+        try {
+            const url = `${CONFIG.api.base}/verify?statement=${encodeURIComponent(statement)}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            openVerificationPanel(data);
+        } catch (err) {
+            console.error("Verification failed:", err);
+            dom.panelTitle.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Verification`;
+            dom.panelBody.innerHTML = `
+                <div class="panel-error">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <p>Verification failed.</p>
+                    <p class="panel-text" style="opacity:0.5">${esc(err.message)}</p>
+                </div>
+            `;
+            showToast("Verification failed", "error");
+        }
+    }
+
+    function openVerificationPanel(data) {
+        dom.panelTitle.innerHTML = `<i class="fa-solid fa-scale-balanced"></i> Verification`;
+
+        let html = "";
+
+        // The statement being verified
+        html += section("Statement", `
+            <p class="panel-text verify-statement-text">"${esc(data.statement)}"</p>
+        `);
+
+        const total = data.total_claims_checked;
+
+        if (total === 0) {
+            html += `<div class="verify-empty">
+                <i class="fa-solid fa-circle-info" style="font-size:24px;opacity:0.4"></i>
+                <p>No relevant claims found in the corpus.</p>
+                <p class="panel-text" style="opacity:0.6">Try uploading papers on this topic first.</p>
+            </div>`;
+            dom.panelBody.innerHTML = html;
+            return;
+        }
+
+        // Summary row
+        const nSup = data.supports.length;
+        const nCon = data.contradicts.length;
+        const nNeu = data.neutral.length;
+        html += `<div class="verify-summary-row">
+            ${nSup > 0 ? `<span class="verify-stat-chip supports">${nSup} support${nSup !== 1 ? "s" : ""}</span>` : ""}
+            ${nCon > 0 ? `<span class="verify-stat-chip contradicts">${nCon} contradict${nCon !== 1 ? "s" : ""}</span>` : ""}
+            ${nNeu > 0 ? `<span class="verify-stat-chip neutral">${nNeu} neutral</span>` : ""}
+            <span class="verify-total-checked">${total} claim${total !== 1 ? "s" : ""} checked</span>
+        </div>`;
+
+        // Contradicts first (most interesting), then supports, then neutral
+        if (nCon > 0) {
+            html += section(
+                `<i class="fa-solid fa-xmark" style="color:${CONFIG.colors.contradiction}"></i> Contradicts (${nCon})`,
+                renderVerifyResults(data.contradicts)
+            );
+        }
+        if (nSup > 0) {
+            html += section(
+                `<i class="fa-solid fa-check" style="color:${CONFIG.colors.finding}"></i> Supports (${nSup})`,
+                renderVerifyResults(data.supports)
+            );
+        }
+        if (nNeu > 0) {
+            html += section(
+                `<i class="fa-solid fa-minus" style="color:var(--text-muted)"></i> Neutral (${nNeu})`,
+                renderVerifyResults(data.neutral)
+            );
+        }
+
+        dom.panelBody.innerHTML = html;
+
+        // Bind click on result items → navigate to that claim node in graph
+        dom.panelBody.querySelectorAll(".verify-result-item[data-claim-id]").forEach(el => {
+            el.addEventListener("click", () => {
+                const node = state.nodes.get(el.dataset.claimId);
+                if (node) {
+                    openDetailPanel(node);
+                    // Briefly highlight the node in the graph
+                    state.selectedNodeId = node.id;
+                    render(false);
+                } else {
+                    showToast("Claim not visible in current graph view", "info");
+                }
+            });
+        });
+    }
+
+    function renderVerifyResults(results) {
+        if (!results || results.length === 0) return "";
+        return results.map(r => `
+            <div class="verify-result-item" data-claim-id="${esc(r.claim_id)}"
+                 title="Click to inspect this claim in the graph">
+                <p class="verify-claim-text">${esc(r.claim_text)}</p>
+                <div class="verify-claim-footer">
+                    <span class="verify-paper-name">${esc(r.paper_title)}</span>
+                    <span class="verify-sim">${Math.round(r.similarity_score * 100)}% match</span>
+                </div>
+                ${r.reason ? `<p class="verify-reason">${esc(r.reason)}</p>` : ""}
+            </div>
+        `).join("");
+    }
+
     function openDetailPanel(node) {
         state.selectedNodeId = node.id;
         dom.detailPanel.classList.add("open");
