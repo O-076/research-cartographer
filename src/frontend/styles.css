@@ -1716,3 +1716,231 @@ line.edge-line.trace-path-edge {
     border-radius: 100px;
     white-space: nowrap;
 }
+
+/* ─── Literature Review Modal ─── */
+
+.review-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 400;
+    background: rgba(5, 5, 15, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: overlay-in 0.2s ease forwards;
+}
+
+.review-modal.hidden { display: none; }
+
+.review-modal-inner {
+    background: var(--bg-glass);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    width: min(820px, 95vw);
+    height: min(88vh, 900px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+    animation: search-drop-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.review-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-glass);
+    flex-shrink: 0;
+}
+
+.review-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.review-modal-title i { color: var(--color-paper); }
+
+.review-modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.review-download-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(74, 158, 255, 0.1);
+    border: 1px solid rgba(74, 158, 255, 0.3);
+    color: var(--color-paper);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: inherit;
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.review-download-btn:hover:not(:disabled) {
+    background: rgba(74, 158, 255, 0.18);
+    border-color: rgba(74, 158, 255, 0.5);
+}
+
+.review-download-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.review-close-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-glass);
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+
+.review-close-btn:hover {
+    background: rgba(255,255,255,0.07);
+    color: var(--text-primary);
+}
+
+.review-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) transparent;
+}
+
+/* ── Document Styles (paper-like) ── */
+
+.review-document {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 40px 64px;
+    font-family: "Times New Roman", Times, serif;
+}
+
+.review-title {
+    font-size: 18px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text-primary);
+    line-height: 1.4;
+    margin-bottom: 6px;
+    font-family: "Times New Roman", Times, serif;
+}
+
+.review-meta {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: inherit;
+    margin-bottom: 32px;
+    font-style: italic;
+}
+
+.review-abstract {
+    margin-bottom: 28px;
+}
+
+.review-section {
+    margin-bottom: 28px;
+}
+
+.review-section-heading {
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    font-family: "Times New Roman", Times, serif;
+}
+
+.review-body-text {
+    font-size: 13.5px;
+    line-height: 2;           /* APA double spacing */
+    color: var(--text-primary);
+    text-indent: 2em;         /* APA first-line indent */
+    text-align: justify;
+    font-family: "Times New Roman", Times, serif;
+    margin: 0;
+}
+
+.review-abstract .review-body-text {
+    text-indent: 0;           /* APA: abstract has no indent */
+}
+
+.review-references { margin-top: 32px; }
+
+.review-references-heading { margin-bottom: 16px; }
+
+.review-ref-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.review-ref-item {
+    font-size: 13px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    font-family: "Times New Roman", Times, serif;
+    padding-left: 2em;
+    text-indent: -2em;        /* APA hanging indent */
+}
+
+/* Loading / empty states inside modal */
+.review-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 80px 40px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-align: center;
+}
+
+.review-loading-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.review-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 80px 40px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-align: center;
+}
+
+.review-empty i {
+    font-size: 28px;
+    opacity: 0.4;
+}

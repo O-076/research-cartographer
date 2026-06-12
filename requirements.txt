@@ -33,3 +33,5 @@ pytest==8.2.2
 pytest-asyncio==0.23.7
 black==24.4.2
 ruff==0.5.0
+
+python-docx==1.1.2

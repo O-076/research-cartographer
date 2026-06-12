@@ -94,6 +94,23 @@ class GraphManager:
         """
         await self._write(query, {"id": paper_id, "status": status}, "update_paper_status")
 
+    async def update_paper_metadata(self, paper_id: str, title: str, authors: list[str], year: int | None, abstract: str | None) -> None:
+        """Update the extracted metadata on a Paper node."""
+        query = """
+        MATCH (p:Paper {id: $id})
+        SET p.title = $title,
+            p.authors = $authors,
+            p.year = $year,
+            p.abstract = $abstract
+        """
+        await self._write(query, {
+            "id": paper_id,
+            "title": title,
+            "authors": authors,
+            "year": year,
+            "abstract": abstract
+        }, "update_paper_metadata")
+
     async def get_paper(self, paper_id: str) -> dict[str, Any] | None:
         """Fetch a single Paper node by id."""
         query = "MATCH (p:Paper {id: $id}) RETURN p"
@@ -169,6 +186,75 @@ class GraphManager:
         async with self._driver.session() as session:
             result = await session.run(query, {})
             return [dict(r) async for r in result]
+
+    async def get_review_data(self) -> dict[str, Any]:
+        """Gather all data needed to generate a literature review.
+
+        Returns: papers, concept clusters (≥2 claims), contradiction pairs, open questions.
+        """
+        papers_query = """
+        MATCH (p:Paper) WHERE p.status = 'complete'
+        RETURN p.id AS id, p.title AS title, p.authors AS authors,
+               p.year AS year, p.abstract AS abstract
+        ORDER BY coalesce(p.year, 9999) ASC
+        """
+
+        concepts_query = """
+        MATCH (concept:Concept)<-[:RELATES_TO]-(claim:Claim)<-[:CONTAINS]-(paper:Paper)
+        WITH concept.name AS concept_name,
+             count(DISTINCT claim) AS claim_count,
+             collect(DISTINCT {
+                 text: claim.text,
+                 paper_title: paper.title,
+                 paper_year: paper.year,
+                 authors: paper.authors,
+                 claim_type: claim.type
+             }) AS all_claims
+        WHERE claim_count >= 2
+        WITH concept_name, claim_count, all_claims[0..6] AS claims
+        RETURN concept_name AS concept, claim_count, claims
+        ORDER BY claim_count DESC
+        LIMIT 8
+        """
+
+        contradictions_query = """
+        MATCH (c1:Claim)-[r:CONTRADICTS]->(c2:Claim)
+        MATCH (p1:Paper)-[:CONTAINS]->(c1)
+        MATCH (p2:Paper)-[:CONTAINS]->(c2)
+        RETURN c1.text AS claim1_text,
+               p1.title AS paper1_title, p1.authors AS paper1_authors, p1.year AS paper1_year,
+               c2.text AS claim2_text,
+               p2.title AS paper2_title, p2.authors AS paper2_authors, p2.year AS paper2_year,
+               r.reasoning AS reasoning
+        LIMIT 5
+        """
+
+        questions_query = """
+        MATCH (q:OpenQuestion) WHERE q.status = 'open'
+        RETURN q.question AS question, q.novelty_score AS novelty_score
+        ORDER BY q.novelty_score DESC
+        LIMIT 8
+        """
+
+        async with self._driver.session() as session:
+            papers_r = await session.run(papers_query, {})
+            papers = [dict(r) async for r in papers_r]
+
+            concepts_r = await session.run(concepts_query, {})
+            concepts = [dict(r) async for r in concepts_r]
+
+            contradictions_r = await session.run(contradictions_query, {})
+            contradictions = [dict(r) async for r in contradictions_r]
+
+            questions_r = await session.run(questions_query, {})
+            questions = [dict(r) async for r in questions_r]
+
+        return {
+            "papers": papers,
+            "concepts": concepts,
+            "contradictions": contradictions,
+            "questions": questions,
+        }
 
     async def get_path_between(
         self, from_id: str, to_id: str

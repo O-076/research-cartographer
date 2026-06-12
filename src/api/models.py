@@ -108,6 +108,31 @@ class TraceResponse(BaseModel):
     narrative: str
 
 
+class ReviewSection(BaseModel):
+    """A single section in the literature review."""
+    heading: str
+    content: str
+
+
+class LiteratureReviewData(BaseModel):
+    """The structured review document."""
+    title: str
+    abstract: str
+    sections: list[ReviewSection]
+    references: list[str]
+
+
+class LiteratureReviewResponse(BaseModel):
+    """Returned by POST /generate/review."""
+    review: LiteratureReviewData
+    paper_count: int
+
+
+class ReviewDownloadRequest(BaseModel):
+    """Body for POST /generate/review/docx."""
+    review: dict[str, Any]
+
+
 # ---------------------------------------------------------------------------
 # WebSocket delta event models
 # ---------------------------------------------------------------------------

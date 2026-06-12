@@ -282,7 +282,7 @@ class GapFinderAgent(BaseAgent):
             logger.info("Using LLM fallback for novelty scoring due to API limits.")
             system_prompt = "You are a research analyst assessing the novelty of a research question. Provide a novelty score between 0.10 (heavily researched) and 0.95 (entirely novel). Provide a short one-sentence explanation. Respond strictly in JSON: {\"score\": 0.85, \"evidence\": \"Short explanation.\"}."
             
-            response_text = await self._invoke_llm(
+            response_text = await self.chat_completion(
                 user_prompt=question,
                 system_prompt=system_prompt,
                 temperature=0.3,

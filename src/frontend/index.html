@@ -66,6 +66,9 @@
             <button id="search-btn" class="header-search-btn" title="Verify a claim (press /)">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </button>
+            <button id="review-btn" class="header-search-btn" title="Generate Literature Review">
+                <i class="fa-solid fa-book-open"></i>
+            </button>
         </div>
     </header>
 
@@ -194,5 +197,26 @@
             </p>
         </div>
     </div>
+<!-- ── Literature Review Modal ─────────────────────────── -->
+<div id="review-modal" class="review-modal hidden" role="dialog" aria-modal="true">
+    <div class="review-modal-inner">
+        <div class="review-modal-header">
+            <div class="review-modal-title">
+                <i class="fa-solid fa-book-open"></i>
+                <span id="review-modal-heading">Literature Review</span>
+            </div>
+            <div class="review-modal-actions">
+                <button id="review-download-btn" class="review-download-btn" disabled>
+                    <i class="fa-solid fa-file-word"></i> Download .docx
+                </button>
+                <button id="review-close-btn" class="review-close-btn" title="Close">✕</button>
+            </div>
+        </div>
+        <div id="review-content" class="review-content">
+            <!-- Populated by renderReview() -->
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

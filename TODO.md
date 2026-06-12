@@ -41,35 +41,35 @@
 ## P5 — Literature Review Generator ← AFTER P4 (see FEATURE_literature_review.md)
 
 **Dependencies**
-- ⬜ `pip install python-docx==1.1.2 --break-system-packages`
-- ⬜ Add `python-docx==1.1.2` to `requirements.txt`
+- [x] `pip install python-docx==1.1.2 --break-system-packages`
+- [x] Add `python-docx==1.1.2` to `requirements.txt`
 
 **Backend**
-- ⬜ Create `src/agents/literature_review_agent.py`
-- ⬜ Add `get_review_data()` to `graph_manager.py`
-- ⬜ Add `ReviewSection`, `LiteratureReviewData`, `LiteratureReviewResponse`, `ReviewDownloadRequest` to `models.py`
-- ⬜ Add `Response` to FastAPI imports in `graph.py`
-- ⬜ Add `build_apa_docx()` function to `graph.py`
-- ⬜ Add `POST /generate/review` and `POST /generate/review/docx` endpoints
-- ⬜ Initialize `LiteratureReviewAgent()` in `main.py` lifespan
+- [x] Create `src/agents/literature_review_agent.py`
+- [x] Add `get_review_data()` to `graph_manager.py`
+- [x] Add `ReviewSection`, `LiteratureReviewData`, `LiteratureReviewResponse`, `ReviewDownloadRequest` to `models.py`
+- [x] Add `Response` to FastAPI imports in `graph.py`
+- [x] Add `build_apa_docx()` function to `graph.py`
+- [x] Add `POST /generate/review` and `POST /generate/review/docx` endpoints
+- [x] Initialize `LiteratureReviewAgent()` in `main.py` lifespan
 
 **Frontend**
-- ⬜ Add `#review-btn` to header in `index.html` (after search-btn)
-- ⬜ Add review modal HTML before `</body>` in `index.html`
-- ⬜ Add `initReview()` call in `init()` after `initSearch()`
-- ⬜ Add `initReview()`, `generateReview()`, `openReviewModal()`, `closeReviewModal()`, `renderReview()`, `downloadReviewDocx()` to graph.js
-- ⬜ Add review modal CSS to end of `styles.css`
+- [x] Add `#review-btn` to header in `index.html` (after search-btn)
+- [x] Add review modal HTML before `</body>` in `index.html`
+- [x] Add `initReview()` call in `init()` after `initSearch()`
+- [x] Add `initReview()`, `generateReview()`, `openReviewModal()`, `closeReviewModal()`, `renderReview()`, `downloadReviewDocx()` to graph.js
+- [x] Add review modal CSS to end of `styles.css`
 
 **Testing**
-- ⬜ `python -c "import docx"` — no ImportError
-- ⬜ Click review button → modal opens, spinner shows
-- ⬜ Review renders with all sections, APA citations, references
-- ⬜ No invented citations in output
-- ⬜ Contradictions discussed by name in Synthesis section
-- ⬜ Download .docx → file opens in Word with correct APA formatting
-- ⬜ Esc / backdrop → closes modal
-- ⬜ Empty corpus → friendly error message
-- ⬜ Delete `FEATURE_literature_review.md` after passing
+- [x] `python -c "import docx"` — no ImportError
+- [x] Click review button → modal opens, spinner shows
+- [x] Review renders with all sections, APA citations, references
+- [x] No invented citations in output
+- [x] Contradictions discussed by name in Synthesis section
+- [x] Download .docx → file opens in Word with correct APA formatting
+- [x] Esc / backdrop → closes modal
+- [x] Empty corpus → friendly error message
+- [x] Delete `FEATURE_literature_review.md` after passing
 
 ---
 

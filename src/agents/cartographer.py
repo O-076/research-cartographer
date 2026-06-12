@@ -197,6 +197,9 @@ class CartographerAgent(BaseAgent):
                 "PDF parsed",
                 extra={"paper_id": paper_id, "chunk_count": len(chunks)},
             )
+            
+            if chunks:
+                await self._extract_metadata(chunks, paper_id)
 
             # ── 2. Upload to Foundry IQ ───────────────────────────
             if self._uploader and chunks:
@@ -397,6 +400,31 @@ class CartographerAgent(BaseAgent):
             "Pipeline status changed",
             extra={"paper_id": paper_id, "status": status.value},
         )
+
+    async def _extract_metadata(self, chunks: list, paper_id: str) -> None:
+        """Extract title, authors, year, and abstract from the first few chunks using LLM."""
+        text_preview = "\n".join(c.text for c in chunks[:3])[:3500]
+        sys_prompt = "Extract the paper's title, list of author full names, publication year (integer), and the abstract. Return strictly JSON: {\"title\": \"...\", \"authors\": [\"...\"], \"year\": 2023, \"abstract\": \"...\"}"
+        try:
+            import json
+            raw = await self.chat_completion(user_prompt=text_preview, system_prompt=sys_prompt, json_mode=True, temperature=0.1)
+            parsed = json.loads(raw)
+            title = parsed.get("title", "Untitled")
+            authors = parsed.get("authors", [])
+            year = parsed.get("year")
+            if year is not None:
+                try: year = int(year)
+                except ValueError: year = None
+            abstract = parsed.get("abstract")
+            
+            await self._graph.update_paper_metadata(paper_id, title, authors, year, abstract)
+            
+            # Emit an updated node event (using the schema to ensure we don't send garbage)
+            p = Paper(id=paper_id, title=title, authors=authors, year=year, abstract=abstract, status=self.get_paper_status(paper_id))
+            await self._delta.emit_node_added({"label": "Paper", **paper_to_props(p)})
+            logger.info("Paper metadata extracted", extra={"paper_id": paper_id, "title": title, "year": year})
+        except Exception as exc:
+            logger.warning("Paper metadata extraction failed", extra={"paper_id": paper_id, "error": str(exc)})
 
     # ------------------------------------------------------------------
     # Cleanup

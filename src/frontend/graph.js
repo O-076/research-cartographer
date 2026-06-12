@@ -93,6 +93,7 @@
         });
         
         initSearch();
+        initReview();
     }
 
     function cacheDom() {
@@ -984,6 +985,177 @@ function openTracePanel(data) {
     html += section("Chain", chainHtml);
 
     dom.panelBody.innerHTML = html;
+}
+
+// ─── Literature Review Generator ─────────────────────────────────────────
+
+// Stores the current review data for the download button
+let _currentReview = null;
+
+function initReview() {
+    if (!dom.reviewBtn || !dom.reviewModal) return; // safety
+
+    dom.reviewBtn.addEventListener("click", generateReview);
+
+    if (dom.reviewCloseBtn) {
+        dom.reviewCloseBtn.addEventListener("click", closeReviewModal);
+    }
+
+    if (dom.reviewDownloadBtn) {
+        dom.reviewDownloadBtn.addEventListener("click", () => {
+            if (_currentReview) downloadReviewDocx(_currentReview);
+        });
+    }
+
+    // Click backdrop to close
+    dom.reviewModal.addEventListener("click", e => {
+        if (e.target === dom.reviewModal) closeReviewModal();
+    });
+
+    // Esc to close
+    document.addEventListener("keydown", e => {
+        if (e.key === "Escape" && dom.reviewModal && !dom.reviewModal.classList.contains("hidden")) {
+            closeReviewModal();
+        }
+    });
+}
+
+function openReviewModal() {
+    if (!dom.reviewModal) return;
+    dom.reviewModal.classList.remove("hidden");
+}
+
+function closeReviewModal() {
+    if (!dom.reviewModal) return;
+    dom.reviewModal.classList.add("hidden");
+}
+
+async function generateReview() {
+    if (!dom.reviewModal || !dom.reviewContent) return;
+
+    openReviewModal();
+    _currentReview = null;
+
+    if (dom.reviewDownloadBtn) dom.reviewDownloadBtn.disabled = true;
+    if (dom.reviewModalHeading) dom.reviewModalHeading = document.getElementById("review-modal-heading");
+
+    dom.reviewContent.innerHTML = `
+        <div class="review-loading">
+            <div class="loading-spinner" style="width:32px;height:32px;border-width:3px"></div>
+            <p>Analyzing corpus and generating review…</p>
+            <p class="review-loading-hint">This may take 10–20 seconds.</p>
+        </div>
+    `;
+
+    try {
+        const res = await fetch(`${CONFIG.api.base}/generate/review`, { method: "POST" });
+        if (res.status === 400) {
+            const err = await res.json();
+            dom.reviewContent.innerHTML = `
+                <div class="review-empty">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <p>${esc(err.detail || "No papers available.")}</p>
+                </div>
+            `;
+            return;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        _currentReview = data.review;
+        renderReview(data);
+
+        if (dom.reviewDownloadBtn) dom.reviewDownloadBtn.disabled = false;
+
+    } catch (err) {
+        console.error("Review generation failed:", err);
+        dom.reviewContent.innerHTML = `
+            <div class="review-empty">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>Review generation failed.</p>
+                <p style="opacity:0.5;font-size:12px">${esc(err.message)}</p>
+            </div>
+        `;
+        showToast("Review generation failed", "error");
+    }
+}
+
+function renderReview(data) {
+    const review = data.review;
+    const heading = document.getElementById("review-modal-heading");
+    if (heading) heading.textContent = review.title || "Literature Review";
+
+    let html = `<div class="review-document">`;
+
+    // Title page area
+    html += `<h1 class="review-title">${esc(review.title || "Literature Review")}</h1>`;
+    html += `<p class="review-meta">${data.paper_count} paper${data.paper_count !== 1 ? "s" : ""} · Generated ${new Date().toLocaleDateString()}</p>`;
+
+    // Abstract
+    if (review.abstract) {
+        html += `<div class="review-abstract">
+            <h2 class="review-section-heading">Abstract</h2>
+            <p class="review-body-text">${esc(review.abstract)}</p>
+        </div>`;
+    }
+
+    // Sections
+    for (const sec of (review.sections || [])) {
+        html += `<div class="review-section">
+            <h2 class="review-section-heading">${esc(sec.heading)}</h2>
+            <p class="review-body-text">${esc(sec.content)}</p>
+        </div>`;
+    }
+
+    // References
+    if (review.references && review.references.length > 0) {
+        html += `<div class="review-references">
+            <h2 class="review-section-heading review-references-heading">References</h2>
+            <ul class="review-ref-list">`;
+        for (const ref of review.references) {
+            html += `<li class="review-ref-item">${esc(ref)}</li>`;
+        }
+        html += `</ul></div>`;
+    }
+
+    html += `</div>`;
+    dom.reviewContent.innerHTML = html;
+}
+
+async function downloadReviewDocx(review) {
+    if (dom.reviewDownloadBtn) {
+        dom.reviewDownloadBtn.disabled = true;
+        dom.reviewDownloadBtn.innerHTML = `<div class="loading-spinner" style="width:14px;height:14px;border-width:2px;margin:0"></div> Generating…`;
+    }
+
+    try {
+        const res = await fetch(`${CONFIG.api.base}/generate/review/docx`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ review }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = (review.title || "literature_review")
+            .toLowerCase().replace(/\s+/g, "_").substring(0, 50) + ".docx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    } catch (err) {
+        console.error("Download failed:", err);
+        showToast("Download failed", "error");
+    } finally {
+        if (dom.reviewDownloadBtn) {
+            dom.reviewDownloadBtn.disabled = false;
+            dom.reviewDownloadBtn.innerHTML = `<i class="fa-solid fa-file-word"></i> Download .docx`;
+        }
+    }
 }
 
     function openDetailPanel(node) {

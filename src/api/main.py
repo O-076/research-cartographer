@@ -21,6 +21,7 @@ from src.api.limiter import limiter
 from src.agents.consensus_explainer import ConsensusExplainerAgent
 from src.agents.claim_verifier import ClaimVerifierAgent
 from src.agents.thread_tracer import ThreadTracerAgent
+from src.agents.literature_review_agent import LiteratureReviewAgent
 
 logger = logging.getLogger(__name__)
 
@@ -104,6 +105,7 @@ async def lifespan(app: FastAPI):
 
     # ── 7. ThreadTracerAgent ───────────────────────────────────────────
     app.state.thread_tracer = ThreadTracerAgent()
+    app.state.literature_review = LiteratureReviewAgent()
 
     logger.info("Application startup complete")
     yield
