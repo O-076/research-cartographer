@@ -69,6 +69,8 @@
         wsReconnectDelay: CONFIG.ws.reconnectDelay,
         selectedNodeId: null,
         tooltip: null,
+        traceStartNodeId: null,   // id of first node selected for tracing
+        tracePath: null,           // { nodeIds: Set<string>, edgeIds: Set<string> } | null
     };
 
     // ─── DOM Refs ───
@@ -120,6 +122,13 @@
         dom.searchBtn = document.getElementById("search-btn");
         dom.searchOverlay = document.getElementById("search-overlay");
         dom.searchInput = document.getElementById("search-input");
+
+        // Review (populated in FEATURE_literature_review)
+        dom.reviewBtn = document.getElementById("review-btn");
+        dom.reviewModal = document.getElementById("review-modal");
+        dom.reviewContent = document.getElementById("review-content");
+        dom.reviewDownloadBtn = document.getElementById("review-download-btn");
+        dom.reviewCloseBtn = document.getElementById("review-close-btn");
     }
 
     // ─── Tooltip ───
@@ -471,7 +480,11 @@
         nodeEnter
             .on("click", (event, d) => {
                 event.stopPropagation();
-                openDetailPanel(d);
+                if (event.shiftKey) {
+                    handleTraceClick(d);
+                } else {
+                    openDetailPanel(d);
+                }
             })
             .on("mouseenter", (event, d) => {
                 const label = d.label === "Claim" ? (d.text || "Claim")
@@ -515,6 +528,17 @@
         state.simulation.nodes(nodesArr);
         state.simulation.force("link").links(edgesArr);
         state.simulation.alpha(0.3).restart();
+
+        // ── Trace Highlighting ───────────────────────────────────────
+        nodeMerge.classed("trace-start",
+            d => state.traceStartNodeId === d.id);
+        nodeMerge.classed("trace-path-node",
+            d => !!(state.tracePath && state.tracePath.nodeIds.has(d.id)));
+        state.edgeGroup.selectAll("line.edge-line")
+            .classed("trace-path-edge",
+                d => !!(state.tracePath && state.tracePath.edgeIds.has(d.id)));
+        // ─────────────────────────────────────────────────────────────
+
         }, 50); // debounce delay
     }
 
@@ -648,7 +672,14 @@
                 e.preventDefault();
                 openSearchOverlay();
             }
-            if (e.key === "Escape") closeSearchOverlay();
+            if (e.key === "Escape") {
+                closeSearchOverlay();
+                if (state.traceStartNodeId || state.tracePath) {
+                    state.traceStartNodeId = null;
+                    state.tracePath = null;
+                    render(false);
+                }
+            }
         });
 
         if (dom.searchBtn) {
@@ -806,6 +837,154 @@
             </div>
         `).join("");
     }
+
+// ─── Research Thread Tracer ───────────────────────────────────────────────
+
+function handleTraceClick(node) {
+    if (!state.traceStartNodeId) {
+        // First node — mark as trace start
+        state.traceStartNodeId = node.id;
+        state.tracePath = null;
+        render(false);
+        showToast(
+            `Trace start set — shift+click a second node to trace`,
+            "info"
+        );
+    } else if (state.traceStartNodeId === node.id) {
+        // Clicked same node — cancel
+        state.traceStartNodeId = null;
+        state.tracePath = null;
+        render(false);
+        showToast("Trace cancelled", "info");
+    } else {
+        // Second node — trigger trace
+        const fromId = state.traceStartNodeId;
+        state.traceStartNodeId = null;
+        render(false);
+        traceThread(fromId, node.id);
+    }
+}
+
+async function traceThread(fromId, toId) {
+    dom.detailPanel.classList.add("open");
+    dom.panelTitle.innerHTML = `<i class="fa-solid fa-route"></i> Tracing…`;
+    dom.panelBody.innerHTML = `
+        <div class="panel-loading">
+            <div class="loading-spinner"></div>
+            <p>Finding reasoning chain…</p>
+        </div>
+    `;
+
+    try {
+        const url = `${CONFIG.api.base}/trace?from_id=${encodeURIComponent(fromId)}&to_id=${encodeURIComponent(toId)}`;
+        const res = await fetch(url);
+
+        if (res.status === 404) {
+            dom.panelTitle.innerHTML = `<i class="fa-solid fa-route"></i> Thread Trace`;
+            dom.panelBody.innerHTML = `
+                <div class="verify-empty">
+                    <i class="fa-solid fa-unlink" style="font-size:24px;opacity:0.4"></i>
+                    <p>No connection found within 8 hops.</p>
+                    <p class="panel-text" style="opacity:0.6">Try nodes that are more conceptually related.</p>
+                </div>
+            `;
+            return;
+        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+
+        // Highlight path in graph
+        state.tracePath = {
+            nodeIds: new Set(data.path_nodes.map(n => n.id)),
+            edgeIds: new Set(data.path_edges.map(e => e.id).filter(Boolean)),
+        };
+        render(false);
+
+        openTracePanel(data);
+
+    } catch (err) {
+        console.error("Trace failed:", err);
+        dom.panelTitle.innerHTML = `<i class="fa-solid fa-route"></i> Thread Trace`;
+        dom.panelBody.innerHTML = `
+            <div class="panel-error">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <p>Trace failed.</p>
+                <p class="panel-text" style="opacity:0.5">${esc(err.message)}</p>
+            </div>
+        `;
+        showToast("Trace failed", "error");
+    }
+}
+
+function openTracePanel(data) {
+    dom.panelTitle.innerHTML = `<i class="fa-solid fa-route"></i> Thread Trace`;
+    let html = "";
+
+    // Path length summary
+    html += section("Path", `
+        <p class="panel-text">
+            ${data.path_length} hop${data.path_length !== 1 ? "s" : ""} between nodes.
+            <span style="opacity:0.5;font-size:11px">Press <kbd>Esc</kbd> to clear highlight.</span>
+        </p>
+    `);
+
+    // Narrative
+    if (data.narrative) {
+        html += section("Reasoning", `
+            <p class="panel-text trace-narrative">${esc(data.narrative)}</p>
+        `);
+    }
+
+    // Step-by-step chain
+    const edgeColorMap = {
+        SUPPORTS: CONFIG.colors.supports,
+        CONTRADICTS: CONFIG.colors.contradicts,
+        EXTENDS: CONFIG.colors.extends,
+        REPLICATES: CONFIG.colors.replicates,
+        REFINES: CONFIG.colors.refines,
+        CONTAINS: "var(--text-muted)",
+        RELATES_TO: "var(--text-muted)",
+    };
+    const nodeColorMap = {
+        Paper: CONFIG.colors.paper,
+        Claim: CONFIG.colors.finding,
+        Concept: CONFIG.colors.concept,
+        OpenQuestion: CONFIG.colors.question,
+    };
+
+    let chainHtml = '<div class="trace-chain">';
+    data.path_nodes.forEach((node, i) => {
+        const nodeColor = nodeColorMap[node.label] || "#9aa0a8";
+        const text = truncate(node.text || node.id, 80);
+
+        chainHtml += `
+            <div class="trace-node-chip" style="border-color:${nodeColor}">
+                <span class="trace-node-badge" style="color:${nodeColor}">${esc(node.label)}</span>
+                <span class="trace-node-text">${esc(text)}</span>
+            </div>
+        `;
+
+        if (i < data.path_edges.length) {
+            const edge = data.path_edges[i];
+            const edgeType = (edge.edge_type || "UNKNOWN");
+            const edgeColor = edgeColorMap[edgeType] || "var(--text-muted)";
+            chainHtml += `
+                <div class="trace-connector">
+                    <div class="trace-connector-line" style="background:${edgeColor}40"></div>
+                    <span class="trace-edge-type" style="color:${edgeColor};border-color:${edgeColor}50">
+                        ${esc(edgeType)}
+                    </span>
+                    <div class="trace-connector-line" style="background:${edgeColor}40"></div>
+                </div>
+            `;
+        }
+    });
+    chainHtml += '</div>';
+    html += section("Chain", chainHtml);
+
+    dom.panelBody.innerHTML = html;
+}
 
     function openDetailPanel(node) {
         state.selectedNodeId = node.id;

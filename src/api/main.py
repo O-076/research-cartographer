@@ -20,6 +20,7 @@ from slowapi.errors import RateLimitExceeded
 from src.api.limiter import limiter
 from src.agents.consensus_explainer import ConsensusExplainerAgent
 from src.agents.claim_verifier import ClaimVerifierAgent
+from src.agents.thread_tracer import ThreadTracerAgent
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,9 @@ async def lifespan(app: FastAPI):
 
     # ── 6. ClaimVerifierAgent ──────────────────────────────────────────
     app.state.claim_verifier = ClaimVerifierAgent()
+
+    # ── 7. ThreadTracerAgent ───────────────────────────────────────────
+    app.state.thread_tracer = ThreadTracerAgent()
 
     logger.info("Application startup complete")
     yield

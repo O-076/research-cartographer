@@ -8,6 +8,7 @@ from src.api.models import (
     GraphResponse, PaperStatusResponse, PIPELINE_PROGRESS,
     EdgeDetailResponse, ConsensusExplainResponse,
     VerificationResultItem, VerificationResponse,
+    TracePathNode, TracePathEdge, TraceResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -170,6 +171,45 @@ async def verify_statement(
         contradicts=[VerificationResultItem(**r) for r in result["contradicts"]],
         neutral=[VerificationResultItem(**r) for r in result["neutral"]],
         total_claims_checked=result["total_claims_checked"],
+    )
+
+
+# ---------------------------------------------------------------------------
+# REST — research thread tracer
+# ---------------------------------------------------------------------------
+
+@router.get("/trace", response_model=TraceResponse)
+async def trace_thread(
+    request: Request,
+    from_id: str = Query(..., min_length=1, description="Start node ID"),
+    to_id: str = Query(..., min_length=1, description="End node ID"),
+) -> TraceResponse:
+    """Find the shortest path between two graph nodes and narrate it."""
+    if from_id == to_id:
+        raise HTTPException(400, "from_id and to_id must be different nodes")
+
+    graph_manager = request.app.state.graph_manager
+    tracer = request.app.state.thread_tracer
+
+    path_data = await graph_manager.get_path_between(from_id, to_id)
+    if not path_data:
+        raise HTTPException(
+            404,
+            f"No path found between {from_id!r} and {to_id!r} within 8 hops",
+        )
+
+    narrative = await tracer.trace(
+        path_nodes=path_data["nodes"],
+        path_edges=path_data["edges"],
+    )
+
+    return TraceResponse(
+        from_id=from_id,
+        to_id=to_id,
+        path_nodes=[TracePathNode(**n) for n in path_data["nodes"]],
+        path_edges=[TracePathEdge(**e) for e in path_data["edges"]],
+        path_length=path_data["path_length"],
+        narrative=narrative,
     )
 
 

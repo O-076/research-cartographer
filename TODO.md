@@ -4,106 +4,116 @@
 
 ---
 
-## Days 1–8: Core Pipeline ✅ COMPLETE
-
-Full pipeline: PDF → Foundry IQ → Extractor → Comparator → Gap Finder (OpenAlex)
-→ Neo4j → FastAPI WebSocket → D3.js force graph + A2A orchestration.
-
----
-
-## Phase 2: Research Intelligence Features
-
-### P1 — Contradiction Drill-Down ✅ COMPLETE AND TESTED
-### P2 — Field Consensus Meter + AI Explanation ✅ COMPLETE AND TESTED
+## Core Pipeline ✅ COMPLETE
+## P1 Contradiction Drill-Down ✅ COMPLETE AND TESTED
+## P2 Field Consensus Meter + AI Explanation ✅ COMPLETE AND TESTED
+## P3 Claim Verification ✅ COMPLETE AND TESTED
 
 ---
 
-### P3 — Claim Verification ✅ COMPLETE
+## P4 — Research Thread Tracer ← BUILD NEXT (see FEATURE_research_thread_tracer.md)
 
 **Backend**
-- ✅ Create `src/agents/claim_verifier.py`
-- ✅ Add `get_claims_for_verification()` to `graph_manager.py`
-- ✅ Add `VerificationResultItem` + `VerificationResponse` to `models.py`
-- ✅ Add `GET /verify` endpoint to `graph.py` (add `Query` to fastapi imports)
-- ✅ Initialize `ClaimVerifierAgent()` in `main.py` lifespan step 6
+- [x] Create `src/agents/thread_tracer.py`
+- [x] Add `get_path_between()` to `graph_manager.py`
+- [x] Add `TracePathNode`, `TracePathEdge`, `TraceResponse` to `models.py`
+- [x] Add `GET /trace` endpoint to `graph.py`
+- [x] Initialize `ThreadTracerAgent()` in `main.py` lifespan
 
 **Frontend**
-- ✅ Add `search-btn` to header in `index.html`
-- ✅ Add search overlay HTML before `</body>` in `index.html`
-- ✅ Add `dom.searchBtn`, `dom.searchOverlay`, `dom.searchInput` to dom object in `graph.js`
-- ✅ Call `initSearch()` at end of `init()` in `graph.js`
-- ✅ Add `initSearch()`, `openSearchOverlay()`, `closeSearchOverlay()` to `graph.js`
-- ✅ Add `verifyStatement()` to `graph.js`
-- ✅ Add `openVerificationPanel()` to `graph.js`
-- ✅ Add `renderVerifyResults()` to `graph.js`
-- ✅ Add all CSS to end of `styles.css`
+- [x] Add `traceStartNodeId: null, tracePath: null` to state object
+- [x] Modify node click handler for shift+click (lines 3307–3312)
+- [x] Add trace highlighting in render() before `}, 50)` (line 3355)
+- [x] Extend Escape handler in initSearch()
+- [x] Add `handleTraceClick()`, `traceThread()`, `openTracePanel()` to graph.js
+- [x] Add dom refs for review elements in cacheDom() (Step 6f — prereq for P5)
+- [x] Add trace CSS to end of styles.css
 
 **Testing**
-- ✅ `/` key → overlay opens, input focused
-- ✅ Valid statement + Enter → loading → results grouped correctly
-- ✅ Click result → navigates to claim node in graph
-- ✅ Empty corpus → "No relevant claims found" message
-- ✅ Delete `FEATURE_claim_verification.md` after passing
+- [x] Shift+click node → trace-start ring appears
+- [x] Shift+click second node → loading → panel + path highlighted in graph
+- [x] Esc → highlight clears
+- [x] No path found → 404 → friendly message
+- ⬜ Delete `FEATURE_research_thread_tracer.md` after passing
 
 ---
 
-### P4 — Research Thread Tracer
+## P5 — Literature Review Generator ← AFTER P4 (see FEATURE_literature_review.md)
 
-- ⬜ Add `GET /trace?from={node_id}&to={node_id}` endpoint
-- ⬜ Neo4j shortest path across semantic edge types
-- ⬜ Shift+click second node to trigger
-- ⬜ Highlight path in graph with animated pulsing
+**Dependencies**
+- ⬜ `pip install python-docx==1.1.2 --break-system-packages`
+- ⬜ Add `python-docx==1.1.2` to `requirements.txt`
 
-### P5 — Literature Review Generator
+**Backend**
+- ⬜ Create `src/agents/literature_review_agent.py`
+- ⬜ Add `get_review_data()` to `graph_manager.py`
+- ⬜ Add `ReviewSection`, `LiteratureReviewData`, `LiteratureReviewResponse`, `ReviewDownloadRequest` to `models.py`
+- ⬜ Add `Response` to FastAPI imports in `graph.py`
+- ⬜ Add `build_apa_docx()` function to `graph.py`
+- ⬜ Add `POST /generate/review` and `POST /generate/review/docx` endpoints
+- ⬜ Initialize `LiteratureReviewAgent()` in `main.py` lifespan
 
-- ⬜ Add `POST /generate/review` endpoint (SSE streaming)
-- ⬜ Agent walks graph: concepts → clusters → gaps → structured markdown
-- ⬜ Stream to modal with copy button
+**Frontend**
+- ⬜ Add `#review-btn` to header in `index.html` (after search-btn)
+- ⬜ Add review modal HTML before `</body>` in `index.html`
+- ⬜ Add `initReview()` call in `init()` after `initSearch()`
+- ⬜ Add `initReview()`, `generateReview()`, `openReviewModal()`, `closeReviewModal()`, `renderReview()`, `downloadReviewDocx()` to graph.js
+- ⬜ Add review modal CSS to end of `styles.css`
 
-### P6 — Relationship Filter Bar
-
-- ⬜ Filter strip: `All · Supports · Contradicts · Extends · Questions`
-- ⬜ Dims non-matching edges and unconnected nodes
-- ⬜ Pure frontend, no API calls
-
-### P7 — Batch Upload
-
-- ⬜ Multi-file drop (up to 5 PDFs at once)
-- ⬜ Per-file progress indicators
-- ⬜ Parallel pipelines via `asyncio.gather()`
+**Testing**
+- ⬜ `python -c "import docx"` — no ImportError
+- ⬜ Click review button → modal opens, spinner shows
+- ⬜ Review renders with all sections, APA citations, references
+- ⬜ No invented citations in output
+- ⬜ Contradictions discussed by name in Synthesis section
+- ⬜ Download .docx → file opens in Word with correct APA formatting
+- ⬜ Esc / backdrop → closes modal
+- ⬜ Empty corpus → friendly error message
+- ⬜ Delete `FEATURE_literature_review.md` after passing
 
 ---
 
-## Demo Video ← DO AFTER P3
+## Demo Video ← DO AFTER P4 OR P5 (whichever completes first)
+
+⚠️ **3 days left. Do not skip this.**
 
 - ⬜ Download 5 transformer papers from arXiv:
-  - Attention Is All You Need (Vaswani et al. 2017)
-  - BERT (Devlin et al. 2018)
-  - RoBERTa (Liu et al. 2019)
-  - Longformer (Beltagy et al. 2020)
-  - Are Transformers Effective for Time Series? (Zeng et al. 2022) ← generates red edges
-- ⬜ Script demo: empty → papers load → contradiction drill-down → consensus meter
-  + explain → verify a statement live
-- ⬜ Record at 1920×1080, 60fps, under 3 minutes
-- ⬜ Upload YouTube (unlisted), add link to README
+  - Attention Is All You Need (Vaswani et al. 2017) — arxiv.org/abs/1706.03762
+  - BERT (Devlin et al. 2018) — arxiv.org/abs/1810.04805
+  - RoBERTa (Liu et al. 2019) — arxiv.org/abs/1907.11692
+  - Longformer (Beltagy et al. 2020) — arxiv.org/abs/2004.05150
+  - Are Transformers Effective for Time Series? (Zeng et al. 2022) — arxiv.org/abs/2205.13504
+- ⬜ Clear Neo4j DB before recording
+- ⬜ Script demo sequence (2–3 min):
+  1. Empty graph state (show "No papers yet")
+  2. Upload paper 1 → watch graph animate live
+  3. Upload papers 2–5 one by one → contradictions appear (red edges)
+  4. Click a contradiction edge → drill-down panel
+  5. Click a disputed claim → consensus meter + AI explain
+  6. Press `/` → verify "attention mechanisms are sufficient for all sequence tasks"
+  7. Shift+click two nodes → trace the reasoning chain
+  8. Click "Generate Review" → APA review appears → Download .docx
+- ⬜ Record at 1920×1080, 60fps (OBS or similar)
+- ⬜ Edit to 2–3 minutes max — cut dead time aggressively
+- ⬜ Upload to YouTube (unlisted), add link to README
 
 ---
 
-## Day 9: Submission Checklist ← Do the day BEFORE June 14
+## Day 9: Submission Checklist ← Do June 13
 
 - ⬜ `git log --all --full-history -- .env` → confirm .env never committed
 - ⬜ Verify `.env.example` has only placeholder values
-- ⬜ Confirm all FEATURE_*.md files deleted
-- ⬜ README: add demo video link, update build status
+- ⬜ Confirm all `FEATURE_*.md` files deleted from repo
+- ⬜ README: add demo video link, update build status, verify setup instructions
 - ⬜ Confirm repo is public on GitHub
-- ⬜ Submit before **11:59 PM PT June 14, 2026**
-- ⬜ Post in Discord: https://aka.ms/agentsleague/discord
+- ⬜ Submit on hackathon platform before **11:59 PM PT June 14, 2026**
+- ⬜ Post in Discord for community vote: https://aka.ms/agentsleague/discord
 
 ---
 
 ## Backlog (Post-submission)
 
+- ⬜ Relationship filter bar (P6)
+- ⬜ Batch upload (P7)
 - ⬜ Time travel slider
 - ⬜ Graph export as PNG
-- ⬜ Docker Compose for local Neo4j
-- ⬜ Azure Container Apps deployment

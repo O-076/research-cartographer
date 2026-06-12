@@ -170,6 +170,45 @@ class GraphManager:
             result = await session.run(query, {})
             return [dict(r) async for r in result]
 
+    async def get_path_between(
+        self, from_id: str, to_id: str
+    ) -> dict[str, Any] | None:
+        """Find shortest path between two nodes (up to 8 hops, any relationship type).
+
+        Returns None if no path exists within 8 hops or if either node is missing.
+        """
+        query = """
+        MATCH (start {id: $from_id}), (end {id: $to_id})
+        MATCH path = shortestPath((start)-[*..8]-(end))
+        WITH path,
+             [n IN nodes(path) | {
+                 id: n.id,
+                 label: head(labels(n)),
+                 text: coalesce(n.text, n.name, n.title, n.question, n.id),
+                 paper_id: n.paper_id,
+                 type: n.type
+             }] AS path_nodes,
+             [r IN relationships(path) | {
+                 id: r.id,
+                 edge_type: type(r),
+                 strength: r.strength,
+                 reasoning: r.reasoning
+             }] AS path_edges
+        RETURN path_nodes, path_edges, length(path) AS path_length
+        ORDER BY path_length ASC
+        LIMIT 1
+        """
+        async with self._driver.session() as session:
+            result = await session.run(query, {"from_id": from_id, "to_id": to_id})
+            record = await result.single()
+            if not record:
+                return None
+            return {
+                "nodes": list(record["path_nodes"]),
+                "edges": list(record["path_edges"]),
+                "path_length": record["path_length"],
+            }
+
     # ------------------------------------------------------------------
     # Edge (Relationship) CRUD
     # ------------------------------------------------------------------

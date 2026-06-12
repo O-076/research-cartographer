@@ -78,6 +78,36 @@ class VerificationResponse(BaseModel):
     total_claims_checked: int
 
 
+class TracePathNode(BaseModel):
+    """A single node in a traced path."""
+
+    id: str
+    label: str           # "Paper", "Claim", "Concept", "OpenQuestion"
+    text: str
+    paper_id: str | None = None
+    type: str | None = None
+
+
+class TracePathEdge(BaseModel):
+    """A single relationship in a traced path."""
+
+    id: str | None = None
+    edge_type: str       # "SUPPORTS", "CONTRADICTS", "EXTENDS", etc.
+    strength: float | None = None
+    reasoning: str | None = None
+
+
+class TraceResponse(BaseModel):
+    """Returned by GET /trace."""
+
+    from_id: str
+    to_id: str
+    path_nodes: list[TracePathNode]
+    path_edges: list[TracePathEdge]
+    path_length: int
+    narrative: str
+
+
 # ---------------------------------------------------------------------------
 # WebSocket delta event models
 # ---------------------------------------------------------------------------
