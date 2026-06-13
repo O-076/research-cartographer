@@ -29,14 +29,14 @@ logger = logging.getLogger(__name__)
 # Paths
 # ---------------------------------------------------------------------------
 
-# Resolve project root (repo root) — src/api/main.py → go up 3 levels
+# Resolve project root (repo root) - src/api/main.py -> go up 3 levels
 _THIS_DIR = Path(__file__).resolve().parent
 _SRC_DIR = _THIS_DIR.parent
 _PROJECT_ROOT = _SRC_DIR.parent
 _FRONTEND_DIR = _SRC_DIR / "frontend"
 
 # ---------------------------------------------------------------------------
-# Lifespan — startup & shutdown
+# Lifespan - startup & shutdown
 # ---------------------------------------------------------------------------
 
 
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
     load_dotenv(dotenv_path)
     logger.info("Loaded .env from %s", dotenv_path)
 
-    # ── 2. GraphManager — Neo4j connection + schema init ───────────────
+    # 2. GraphManager - Neo4j connection + schema init
     from src.graph.graph_manager import GraphManager
 
     graph_manager = GraphManager.from_env()
@@ -73,13 +73,13 @@ async def lifespan(app: FastAPI):
 
     app.state.graph_manager = graph_manager
 
-    # ── 3. DeltaEmitter — WebSocket event fan-out ──────────────────────
+    # 3. DeltaEmitter - WebSocket event fan-out
     from src.graph.delta_emitter import DeltaEmitter
 
     emitter = DeltaEmitter()
     app.state.emitter = emitter
 
-    # ── 4. CartographerAgent — orchestrator ────────────────────────────
+    # 4. CartographerAgent - orchestrator
     try:
         from src.agents.cartographer import CartographerAgent
 
@@ -97,20 +97,20 @@ async def lifespan(app: FastAPI):
 
     app.state.cartographer = cartographer
 
-    # ── 5. ConsensusExplainerAgent ─────────────────────────────────────
+    # 5. ConsensusExplainerAgent
     app.state.consensus_explainer = ConsensusExplainerAgent()
 
-    # ── 6. ClaimVerifierAgent ──────────────────────────────────────────
+    # 6. ClaimVerifierAgent
     app.state.claim_verifier = ClaimVerifierAgent()
 
-    # ── 7. ThreadTracerAgent ───────────────────────────────────────────
+    # 7. ThreadTracerAgent
     app.state.thread_tracer = ThreadTracerAgent()
     app.state.literature_review = LiteratureReviewAgent()
 
     logger.info("Application startup complete")
     yield
 
-    # ── Shutdown ───────────────────────────────────────────────────────
+    # Shutdown
     logger.info("Shutting down Research Cartographer API")
 
     if hasattr(cartographer, "close"):
@@ -158,7 +158,7 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ── CORS — fixed for security ────────────────────────────────────
+# CORS - fixed for security
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:8000", "http://127.0.0.1:8000", "http://localhost:3000"],
@@ -167,14 +167,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Route modules ─────────────────────────────────────────────────────────
+# Route modules
 from src.api.routes.upload import router as upload_router  # noqa: E402
 from src.api.routes.graph import router as graph_router  # noqa: E402
 
 app.include_router(upload_router)
 app.include_router(graph_router)
 
-# ── Static files (frontend assets) ────────────────────────────────────────
+# Static files (frontend assets)
 # Mount only if the frontend directory has actual files to serve.
 if _FRONTEND_DIR.is_dir():
     app.mount(
@@ -184,7 +184,7 @@ if _FRONTEND_DIR.is_dir():
     )
 
 
-# ── Root route — serve index.html ─────────────────────────────────────────
+# Root route - serve index.html
 
 @app.get("/", include_in_schema=False)
 async def root():
@@ -209,7 +209,7 @@ async def root():
 
 
 # ---------------------------------------------------------------------------
-# Logging configuration (basic — can be replaced with structlog later)
+# Logging configuration (basic - can be replaced with structlog later)
 # ---------------------------------------------------------------------------
 
 logging.basicConfig(

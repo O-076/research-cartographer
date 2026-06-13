@@ -1,140 +1,91 @@
-# 📋 PLAN.md: Project Vision & Strategy
+# PLAN.md — Project Vision and Strategy
 
-## Vision
+## What Research Cartographer is
 
-Research Cartographer turns a collection of PDFs into a dynamic map of human knowledge. It shows how ideas relate, identifies contradictions in the field, and highlights unanswered questions.
+A tool that takes scientific PDFs and turns them into an interactive, reasoning knowledge graph. The core insight is simple: most tools that work with research papers operate on one document at a time. This system reads across the whole corpus simultaneously, finds where papers agree and disagree, and makes those relationships navigable.
 
-Most AI tools summarize individual papers. This system reasons across multiple papers. The output is a navigable, dynamic graph that updates as you add more papers.
-
----
-
-## Why This Wins the Hackathon
-
-### Judging Criteria Alignment
-
-| Criterion | Weight | How We Hit It |
-|-----------|--------|---------------|
-| Accuracy & Relevance | 20% | Foundry IQ grounds all reasoning in actual paper content (no hallucination) |
-| Reasoning & Multi-step Thinking | 20% | 4 agents reason in sequence: extract → compare → gap-find → orchestrate |
-| Creativity & Originality | 15% | Nobody at 135 projects is building a live, async reasoning graph with A2A |
-| User Experience & Presentation | 15% | The animated graph evolution IS the demo (visually unlike anything else) |
-| Reliability & Safety | 20% | Agent state machine, typed edges, scored confidence, graceful failure handling |
-| Community Vote | 10% | The demo video will be uniquely striking (vote-worthy) |
-
-### Microsoft Technology Alignment
-
-- **Foundry IQ**: Core knowledge base, directly integrated
-- **OpenAlex API**: Used by Gap Finder for novelty scoring (free web grounding)
-- **A2A Protocol**: Just went GA at Build 2026, we're an early adopter showcase
-- **Microsoft Agent Framework 1.0**: GA, production-grade, exactly what judges want to see
-- **Azure Container Apps**: Deployment stays in the Microsoft ecosystem
+The live graph animation is the demo moment. Upload a paper, and the graph visibly processes it: claim nodes appear, edges animate between them, contradiction clusters light up red, open question nodes emerge. It looks like the system is thinking because it is.
 
 ---
 
-## What Makes The Demo Unforgettable
+## Why this fits Creative Apps
 
-The demo video must capture this specific moment:
+The track rewards novel concept, clear user value, and thoughtful UX. Research Cartographer delivers all three in a way that is immediately visible in a demo video:
 
-1. Start with 3 papers already loaded (a modest graph is visible)
-2. Upload paper #4 (live on screen)
-3. **The graph updates dynamically:** a new paper node appears
-4. Claims animate in one by one (new nodes populating)
-5. Edges re-draw: some existing edges change color (Comparator re-evaluating)
-6. A RED edge appears (contradiction detected)
-7. Two existing OpenQuestion nodes pulse and disappear (resolved)
-8. One new glowing white node appears (a new gap discovered)
-9. Click the red edge: side panel shows the agent's full contradiction reasoning
-
-**That 60-second sequence is worth 1000 lines of code.** Everything else serves it.
+- The animated knowledge graph is visually unlike anything else in the submission pool
+- The features (contradiction drill-down, consensus meter, claim verification, thread tracing, literature review) each solve a real problem researchers face
+- Every feature has a clear "wow moment" that works on camera
 
 ---
 
-## Scope Decisions
+## Judging alignment
 
-### In Scope (MVP: must have for submission)
+| Criterion | How we hit it |
+|-----------|--------------|
+| Accuracy & Relevance (20%) | Foundry IQ grounds all reasoning in actual document content. Claims trace to source chunks. |
+| Reasoning & Multi-step Thinking (20%) | Four agents coordinate: extract, compare, find gaps, orchestrate. Each step is traceable. |
+| Creativity & Originality (15%) | A live reasoning graph is not a chat interface. The visual output is the differentiator. |
+| User Experience (15%) | Dark-theme D3.js graph, click-to-inspect, keyboard shortcuts, downloadable .docx output. |
+| Reliability & Safety (20%) | Async pipeline with state machine, graceful failure handling, no hardcoded credentials. |
+| Community vote (10%) | Demo video will be visually striking enough to win Discord votes. |
 
-- PDF upload (up to 10 papers)
-- Extractor Agent: claim extraction
-- Comparator Agent: edge detection and typing
-- Cartographer Agent: A2A orchestration
-- Neo4j graph storage
-- FastAPI WebSocket streaming
-- D3.js live force graph
-- Foundry IQ knowledge base integration
-- Basic click-to-inspect side panel
+---
 
-### In Scope (Stretch: add if time allows)
+## Feature set (all complete)
 
-- Gap Finder Agent (open question discovery)
-- OpenAlex API novelty scoring
-- "Tension cluster" visual highlighting
-- Paper search within the graph
-- Export graph as JSON
+| Feature | What it shows judges |
+|---------|---------------------|
+| Live graph animation | Creativity, UX |
+| Contradiction drill-down | Reasoning, UX |
+| Field consensus meter + AI explain | Reasoning, Creativity |
+| Claim verification | Reasoning, UX |
+| Research thread tracer | Reasoning, Creativity |
+| Literature review + .docx | Creativity, UX, practical value |
 
-### Out of Scope (do not build)
+---
+
+## The demo video is the submission
+
+Code quality, architecture, and feature depth only matter if the demo video communicates them clearly. The video should be 2-3 minutes and follow this sequence:
+
+1. Empty graph state
+2. Upload papers one by one, graph animates live
+3. Red edges appear between contradicting papers
+4. Click a red edge — contradiction panel opens
+5. Click a disputed claim — consensus bar, AI explanation
+6. Press `/` — verify a statement against the corpus
+7. Shift-click two nodes — trace the reasoning chain
+8. Click Generate Review — APA review appears, download .docx
+
+Every feature gets one clear moment. No dead time. The graph should be clearly visible throughout.
+
+---
+
+## GitHub Copilot documentation
+
+For the submission, the README includes a section on GitHub Copilot usage covering:
+- Code completion for FastAPI routes and Neo4j Cypher queries
+- Copilot Chat for debugging WebSocket streaming and D3.js simulation tuning
+- Iterative development of the python-docx APA formatting logic
+
+---
+
+## What is not in scope
 
 - User authentication
 - Multi-user sessions
-- Real-time collaboration
 - Mobile responsiveness
-- Paper recommendations
-- Citation import (DOI lookup)
+- Real-time collaboration
+- Any features not currently implemented
 
 ---
 
-## Risk Assessment
+## Submission checklist
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| A2A Protocol setup complexity | Medium | High | Start Day 1, use Discord for help |
-| Foundry IQ indexing latency | Medium | Medium | Show "indexing..." state in UI, async |
-| Neo4j on Azure setup time | Low | Medium | Use Neo4j AuraDB free tier (instant) |
-| D3.js live updates complexity | Medium | High | Build static graph first, add live second |
-| Gap Finder quality low | Medium | Low | It's a stretch goal (skip if needed) |
-| Demo video quality | Low | High | Record on Day 8, full day buffer Day 9 |
-
----
-
-## Competitive Differentiation
-
-What other submissions likely look like:
-- Chat interfaces with RAG
-- Document summarizers
-- Q&A bots over documents
-- Single-agent task runners
-
-What we look like:
-- **Multi-agent autonomous reasoning system**
-- **Live, animated knowledge graph**
-- **Contradiction and gap detection** (beyond simple retrieval)
-- **A2A protocol**: Newest GA Microsoft technology
-- **Two IQ layers**: Exceeds minimum requirement
-
----
-
-## 9-Day Build Timeline
-
-| Day | Focus | Definition of Done |
-|-----|-------|-------------------|
-| 1 | Foundation | Repo up, Foundry IQ KB created, PDF → chunks working |
-| 2 | Extractor Agent | Claims extracted from 3 test papers, stored in Neo4j |
-| 3 | Comparator Agent | Edges typed and stored, re-evaluation on new paper works |
-| 4 | Cartographer + A2A | Full pipeline: PDF in → graph updated, no human steps |
-| 5 | FastAPI + WebSocket | Delta events streaming, frontend receives them |
-| 6 | D3.js Graph | Static graph renders, click-to-inspect works |
-| 7 | Live Updates + Polish | New paper upload → graph animates live |
-| 8 | Gap Finder (stretch) + Demo video | Video recorded |
-| 9 | Buffer + Submit | Submitted by 11:59 PM PT |
-
----
-
-## Definition of "Done" for Submission
-
-- [x] Public GitHub repo with this README
-- [x] All source code present and runnable from README instructions
-- [x] `.env.example` with all required variables (no real values)
-- [x] Demo video uploaded (max 3 minutes)
-- [x] At least Foundry IQ integrated (OpenAlex API for web grounding is bonus)
-- [x] A2A protocol used for agent coordination
-- [x] No secrets, PII, or confidential info in repo (see SECURITY.md)
-- [x] No confidential information anywhere (see Microsoft DISCLAIMER)
+- [ ] Public GitHub repo
+- [ ] README with demo video link, setup instructions, Copilot documentation
+- [ ] Demo video uploaded (YouTube unlisted)
+- [ ] `.env` confirmed never committed
+- [ ] All `FEATURE_*.md` files deleted
+- [ ] Submitted on platform before June 14, 2026 11:59 PM PT
+- [ ] Posted in Discord for community vote

@@ -1,8 +1,8 @@
 /* ============================================================
-   Research Cartographer — Premium Dark Theme
+   Research Cartographer - Premium Dark Theme
    ============================================================ */
 
-/* ─── CSS Custom Properties ─── */
+/* CSS Custom Properties */
 :root {
     /* Background */
     --bg-primary: #0a0a1a;
@@ -48,7 +48,7 @@
     --transition-slow: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* ─── Reset & Base ─── */
+/* Reset & Base */
 *,
 *::before,
 *::after {
@@ -67,7 +67,7 @@ html, body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Custom Scrollbar ─── */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
 }
@@ -82,7 +82,7 @@ html, body {
     background: rgba(255, 255, 255, 0.22);
 }
 
-/* ─── Header ─── */
+/* Header */
 #header {
     position: fixed;
     top: 0;
@@ -280,7 +280,7 @@ html, body {
     margin-left: 6px;
 }
 
-/* ─── Main Content ─── */
+/* Main Content */
 #main {
     position: fixed;
     top: var(--header-height);
@@ -290,7 +290,7 @@ html, body {
     z-index: 1;
 }
 
-/* ─── Graph Container ─── */
+/* Graph Container */
 #graph-container {
     width: 100%;
     height: 100%;
@@ -419,7 +419,7 @@ html, body {
     flex-shrink: 0;
 }
 
-/* ─── Upload Area ─── */
+/* Upload Area */
 .upload-area {
     position: fixed;
     bottom: 24px;
@@ -569,7 +569,7 @@ html, body {
     color: var(--text-secondary);
 }
 
-/* ─── Detail Side Panel ─── */
+/* Detail Side Panel */
 .detail-panel {
     position: fixed;
     top: var(--header-height);
@@ -803,7 +803,7 @@ html, body {
     flex-shrink: 0;
 }
 
-/* ─── Toast Notifications ─── */
+/* Toast Notifications */
 .toast-container {
     position: fixed;
     top: calc(var(--header-height) + 16px);
@@ -857,7 +857,7 @@ html, body {
     to { transform: translateX(120%); opacity: 0; }
 }
 
-/* ─── SVG Graph Styles ─── */
+/* SVG Graph Styles */
 
 /* Edges */
 .edge-line {
@@ -985,7 +985,7 @@ html, body {
     to { stroke-dashoffset: 0; }
 }
 
-/* ─── D3 Tooltip ─── */
+/* D3 Tooltip */
 .graph-tooltip {
     position: fixed;
     padding: 8px 14px;
@@ -1010,7 +1010,7 @@ html, body {
     opacity: 1;
 }
 
-/* ─── Responsive ─── */
+/* Responsive */
 @media (max-width: 900px) {
     .detail-panel {
         width: 100%;
@@ -1053,7 +1053,7 @@ html, body {
     }
 }
 
-/* ─── Utility Classes ─── */
+/* Utility Classes */
 .hidden {
     display: none !important;
 }
@@ -1070,7 +1070,7 @@ html, body {
     border: 0;
 }
 
-/* ─── Edge Detail Panel — Claim Comparison ─── */
+/* Edge Detail Panel - Claim Comparison */
 
 .claims-comparison {
     display: flex;
@@ -1284,7 +1284,7 @@ html, body {
     border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
-/* ─── Field Consensus Meter ─── */
+/* Field Consensus Meter */
 
 .consensus-meter {
     display: flex;
@@ -1376,7 +1376,7 @@ html, body {
     animation: consensus-fade-in 0.3s ease forwards;
 }
 
-/* ─── Header Search Button ─── */
+/* Header Search Button */
 
 .header-search-btn {
     display: flex;
@@ -1400,7 +1400,7 @@ html, body {
     color: var(--color-paper);
 }
 
-/* ─── Search Overlay ─── */
+/* Search Overlay */
 
 .search-overlay {
     position: fixed;
@@ -1499,7 +1499,7 @@ html, body {
     padding: 1px 6px;
 }
 
-/* ─── Verification Panel ─── */
+/* Verification Panel */
 
 .verify-statement-text {
     font-style: italic;
@@ -1613,7 +1613,7 @@ html, body {
     font-size: 13px;
 }
 
-/* ─── Research Thread Tracer ─── */
+/* Research Thread Tracer */
 
 /* Trace-start node: pulsing ring */
 .node-group.trace-start .node-circle {
@@ -1717,7 +1717,7 @@ line.edge-line.trace-path-edge {
     white-space: nowrap;
 }
 
-/* ─── Literature Review Modal ─── */
+/* Literature Review Modal */
 
 .review-modal {
     position: fixed;
@@ -1831,7 +1831,7 @@ line.edge-line.trace-path-edge {
     scrollbar-color: var(--border-hover) transparent;
 }
 
-/* ── Document Styles (paper-like) ── */
+/* Document Styles (paper-like) */
 
 .review-document {
     max-width: 680px;

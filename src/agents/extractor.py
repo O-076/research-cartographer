@@ -1,4 +1,4 @@
-"""Agent 1 — Claim Extractor.
+"""Agent 1 - Claim Extractor.
 
 Given a ``paper_id``, query Foundry IQ for its chunks and use the LLM to
 extract structured, falsifiable claims. Each claim is enriched with a
@@ -100,7 +100,7 @@ Example:
 
 
 class ExtractorAgent(BaseAgent):
-    """Agent 1 — Extract structured claims from a paper's Foundry IQ chunks."""
+    """Agent 1 - Extract structured claims from a paper's Foundry IQ chunks."""
 
     SYSTEM_PROMPT = _SYSTEM_PROMPT
 

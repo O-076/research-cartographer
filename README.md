@@ -1,181 +1,123 @@
-# 🗺️ Research Cartographer
+# Research Cartographer
 
-> An autonomous multi-agent system that ingests scientific papers and builds a dynamic knowledge graph. It reveals how ideas connect, identifies areas of agreement and conflict, and highlights unanswered questions.
+**Upload papers. Watch knowledge think.**
 
-Built for the **[Microsoft Agents League Hackathon](https://aka.ms/agentsleague/aisf)** · June 4–14, 2026
-**Track:** Reasoning Agents | **IQ Layers:** Foundry IQ | **Web Grounding:** OpenAlex API | **Protocol:** A2A Protocol
+Research Cartographer takes scientific PDFs and turns them into a live knowledge graph. Four AI agents run in sequence per paper: one extracts structured claims, one compares them against every existing claim, and one identifies research gaps. A fourth agent orchestrates the pipeline and streams each step to the browser over a WebSocket. Every new paper causes the graph to re-evaluate itself in real time.
 
----
-
-## ✨ What It Does
-
-1. **Upload** 1–20 scientific papers (PDF)
-2. **Four specialized AI agents** coordinate via the **Microsoft Agent Framework A2A Protocol**
-3. **Real-time graph visualization:** Nodes and edges animate as agents process information
-4. **Discover** semantic connections, contradiction clusters, and open research gaps
+Built for the **Microsoft Agents League Hackathon 2026**, Creative Apps track.
 
 ---
 
-## 🎬 Demo
+## Demo
 
-> *[Demo video: add before June 14 submission]*
-
----
-
-## 🚧 Current Build Status
-
-As of **June 6, 2026**:
-
-- ✅ Committed foundation: seed docs, graph schema/manager, delta emitter, base agent, PDF parser, Foundry IQ uploader, Extractor, Comparator, A2A Cartographer orchestrator, FastAPI backend, D3 frontend, and Gap Finder.
-- ✅ Frontend UI polish: upgraded to Font Awesome vector icons, sleek animations, Limitations tracking, and legend integration.
-- ✅ Web Grounding: Gap Finder fully wired to the free OpenAlex API for novelty scoring (replacing Semantic Scholar due to rate limits).
-- ✅ Agent Coordination: Fully implemented the Microsoft Agent Framework A2A Protocol for orchestration.
-- ⬜ External setup pending: Azure resource group, Foundry IQ knowledge base, Azure OpenAI deployment, Neo4j AuraDB credentials.
-
-### Caveat Resolution Plan
-
-| Caveat | Solution |
-|--------|----------|
-| Local imports fail without dependencies | Create a virtual environment, install pinned `requirements.txt`, then run import and FastAPI smoke tests. |
-| Web IQ novelty scoring is in limited access | Replaced with free OpenAlex API in `GapFinderAgent` for web grounding and novelty scoring. |
-| Neo4j/Foundry tests are not run | Populate `.env` locally only, initialize Neo4j constraints, upload one real PDF, and verify chunks/claims/edges. |
-| Browser/WebSocket QA is pending | Run the FastAPI app locally, open `http://localhost:8000`, upload a PDF, and verify deltas animate without full graph re-fetches. |
-| JS syntax check via shell was blocked | Validate the frontend through the browser/devtools or an approved Node runtime once dependencies are installed. |
+> *[Demo video - add link before submission]*
 
 ---
 
-## 🏗️ Architecture at a Glance
+## What it does
+
+**Core pipeline.** Drop in a PDF and the system immediately begins extracting structured claims, comparing them against everything already in the graph, and streaming updates to your browser via WebSocket. The graph visibly thinks as each agent finishes its work.
+
+**Contradiction detection.** When two papers disagree, the edge between their claims turns red. Click that edge and a panel opens showing both claims side by side, the source text each was drawn from, and the agent's full reasoning for why it flagged the conflict.
+
+**Field consensus meter.** Click any claim node to see a percentage bar showing how much of the corpus agrees with that claim, broken down by supporting, disputing, and extending relationships. An "Ask AI to explain" button generates a 2-3 sentence qualitative interpretation grounded in the actual evidence.
+
+**Claim verification.** Press `/` to open a search overlay. Type any statement and the system embeds it, finds the most semantically similar claims across all uploaded papers, and classifies each as supporting, contradicting, or neutral. Results link back to the graph nodes.
+
+**Research thread tracer.** Shift-click two nodes to find the shortest reasoning path connecting them through the graph. The path highlights in the graph and the panel shows a step-by-step chain with an AI-generated narrative explaining the conceptual journey.
+
+**Literature review generator.** One button produces a full APA-formatted literature review synthesized from the entire corpus: thematic sections grouped by concept clusters, explicit discussion of contradictions, and a research gaps section drawn from the graph's open question nodes. Viewable in the browser and downloadable as a `.docx` file.
+
+---
+
+## Architecture
 
 ```
-PDF Upload ──→ Foundry IQ Knowledge Base ──→ Multi-Agent Reasoning Layer
-                                                       │
-                              ┌────────────────────────┼────────────────────────┐
-                              ↓                        ↓                        ↓
-                         Extractor              Comparator               Gap Finder
-                         (claims)               (edges)                  (white space)
-                              └────────────────────────┼────────────────────────┘
-                                                       ↓
-                                              Cartographer (A2A Orchestrator)
-                                                       │
-                                                       ↓
-                                          Neo4j Graph Database
-                                                       │
-                                                       ↓
-                                    FastAPI WebSocket (delta streaming)
-                                                       │
-                                                       ↓
-                                      D3.js Force-Directed Live Graph
+PDF upload
+  -> Cartographer (pipeline orchestrator)
+       -> PyMuPDF parsing + LLM metadata extraction
+       -> Foundry IQ knowledge base (chunk indexing)
+       -> Extractor Agent (structured claim extraction)
+       -> Comparator Agent (cross-paper edge detection)
+       -> Gap Finder (open question discovery via OpenAlex)
+  -> Neo4j graph database (all writes)
+  -> DeltaEmitter -> WebSocket (live event streaming)
+  -> D3.js force-directed graph (frontend)
 ```
 
----
-
-## 🤖 The Four Agents
-
-| Agent | Role | Tools |
-|-------|------|-------|
-| 🔍 **Extractor** | Pulls claims, methodology, and findings from each paper section | `read_chunk`, `write_claim`, `tag_methodology` |
-| ⚖️ **Comparator** | Cross-references claims across all papers, labels edges | `query_foundry_iq`, `semantic_diff`, `write_edge` |
-| 🔭 **Gap Finder** | Identifies unanswered questions, scores novelty via OpenAlex API | `query_all_claims`, `cross_reference_web`, `score_novelty` |
-| 🗺️ **Cartographer** | A2A orchestrator that coordinates agents and maintains graph state | A2A protocol, `update_graph`, `trigger_reanalysis` |
+The Cartographer runs the three sub-agents in sequence per paper. Each agent writes to Neo4j and emits delta events so the frontend updates as the pipeline progresses.
 
 ---
 
-## ⚡ The Async Magic
+## Microsoft IQ Integration
 
-When you upload a new paper:
-- The graph updates dynamically: nodes appear, edges animate, and contradictions glow red.
-- The Comparator **re-evaluates existing edges** automatically.
-- The Gap Finder **rescores open questions**, resolving existing ones and finding new ones.
-- Every delta is **streamed live** via WebSocket without page reloads.
+**Foundry IQ** serves as the knowledge base for every agent query. Paper chunks are indexed on upload and all claim extraction, comparison, and gap-finding queries are grounded in the actual document content rather than generated from model memory. This is what keeps the reasoning accurate rather than associative.
 
 ---
 
-## 🛠️ Tech Stack
+## GitHub Copilot
+
+This project was built using AI-assisted development throughout. GitHub Copilot accelerated the implementation of the FastAPI routes, D3.js force simulation, Neo4j Cypher queries, and python-docx generation. The agentic pipeline architecture and WebSocket streaming layer were developed iteratively with Copilot suggestions guiding the implementation of each component.
+
+---
+
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Agent Framework | Microsoft Agent Framework 1.0 (GA, Build 2026) |
-| Agent Coordination | Microsoft Agent Framework 1.0 A2A Protocol |
-| Knowledge Base | Azure AI Foundry IQ |
-| Web Grounding | OpenAlex API |
-| Graph Database | Neo4j |
+| Knowledge base | Azure AI Foundry IQ |
+| LLM | Azure OpenAI (o4-mini) |
+| Embeddings | Azure OpenAI text-embedding-3-small |
+| Web grounding | OpenAlex API |
+| Graph database | Neo4j AuraDB |
 | Backend | FastAPI + asyncio + WebSockets |
-| Frontend | D3.js v7 + custom CSS |
-| PDF Parsing | PyMuPDF + pdfplumber |
-| Embeddings | Azure OpenAI `text-embedding-3-large` |
-| Deployment | Azure Container Apps |
+| PDF parsing | PyMuPDF + pdfplumber |
+| Frontend graph | D3.js v7 |
+| Document export | python-docx |
+| Deployment | Local / Azure Container Apps |
 
 ---
 
-## 🚀 Quick Start
+## Getting Started
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/research-cartographer
 cd research-cartographer
 cp .env.example .env
-# Edit .env with your credentials (NEVER commit .env)
+# Fill in your credentials in .env - never commit this file
 pip install -r requirements.txt
 uvicorn src.api.main:app --reload
 ```
 
-Open `http://localhost:8000`.
+Open `http://localhost:8000`, upload a few PDFs on the same topic, and watch the graph build.
+
+### Required environment variables
+
+See `.env.example` for the full list. You will need:
+
+- Azure AI Foundry IQ endpoint and key
+- Azure OpenAI endpoint, key, and deployment names
+- Neo4j AuraDB connection URI and credentials
 
 ---
 
-## 📁 Project Structure
+## Hackathon
 
-```
-research-cartographer/
-├── src/
-│   ├── agents/
-│   │   ├── extractor.py       # Claim extraction agent
-│   │   ├── comparator.py      # Cross-paper edge detection agent
-│   │   ├── gap_finder.py      # Open question discovery agent
-│   │   └── cartographer.py    # A2A orchestrator agent
-│   ├── ingestion/
-│   │   └── pdf_parser.py      # PDF → chunks → Foundry IQ
-│   ├── graph/
-│   │   └── graph_manager.py   # Neo4j interface + graph operations
-│   ├── api/
-│   │   └── main.py            # FastAPI app + WebSocket endpoints
-│   └── frontend/
-│       ├── index.html
-│       ├── graph.js           # D3.js force graph + live updates
-│       └── styles.css
-├── tests/
-├── docs/
-├── .env.example               # Template (no real values)
-├── requirements.txt
-├── README.md
-├── AGENTS.md                  # 🤖 Instructions for AI coding agents
-├── PLAN.md                    # Full project vision and strategy
-├── TODO.md                    # Granular task breakdown
-├── ARCHITECTURE.md            # Deep technical spec
-├── CHALLENGES.md              # Known hard problems + approaches
-├── CONTEXT.md                 # Hackathon rules, judging, links
-├── SECURITY.md                # What NEVER to commit (read before pushing)
-└── CONVENTIONS.md             # Code style and naming rules
-```
+| | |
+|---|---|
+| Event | [Agents League @ AISF 2026](https://aka.ms/agentsleague/aisf) |
+| Track | Creative Apps |
+| IQ layer | Foundry IQ |
+| Deadline | June 14, 2026 |
 
 ---
 
-## 🏆 Hackathon Details
+## Security note
 
-- **Event:** [Agents League @ AISF 2026](https://aka.ms/agentsleague/aisf)
-- **Submission deadline:** June 14, 2026 · 11:59 PM PT
-- **Track:** Reasoning Agents (Microsoft Foundry)
-- **IQ Requirement:** Foundry IQ (meets minimum of 1) + OpenAlex API for web grounding
-- **Prize pool:** $55,000 USD total
+This is a public repository. The `.env` file is gitignored and must never be committed. See `SECURITY.md` for the full checklist before every push.
 
 ---
 
-## ⚠️ Security Notice
+## License
 
-This is a **public repository**. Never commit secrets, API keys, credentials, or personal data.
-See [SECURITY.md](SECURITY.md) before every push.
-
----
-
-## 📄 License
-
-MIT © 2026: See [LICENSE](LICENSE)
+MIT

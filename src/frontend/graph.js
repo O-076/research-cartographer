@@ -1,11 +1,11 @@
 /* ============================================================
-   Research Cartographer — D3.js Force-Directed Graph + WebSocket
+   Research Cartographer - D3.js Force-Directed Graph + WebSocket
    ============================================================ */
 
 (() => {
     "use strict";
 
-    // ─── Configuration ───
+    // Configuration
     const CONFIG = {
         api: {
             base: window.location.origin || "http://localhost:8000",
@@ -54,7 +54,7 @@
         },
     };
 
-    // ─── State ───
+    // State
     const state = {
         nodes: new Map(),       // id → node data
         edges: new Map(),       // id → edge data
@@ -73,10 +73,10 @@
         tracePath: null,           // { nodeIds: Set<string>, edgeIds: Set<string> } | null
     };
 
-    // ─── DOM Refs ───
+    // DOM Refs
     const dom = {};
 
-    // ─── Initialize ───
+    // Initialize
     function init() {
         cacheDom();
         createTooltip();
@@ -132,7 +132,7 @@
         dom.reviewCloseBtn = document.getElementById("review-close-btn");
     }
 
-    // ─── Tooltip ───
+    // Tooltip
     function createTooltip() {
         state.tooltip = document.createElement("div");
         state.tooltip.className = "graph-tooltip";
@@ -150,7 +150,7 @@
         state.tooltip.classList.remove("visible");
     }
 
-    // ─── SVG Setup ───
+    // SVG Setup
     function initSvg() {
         const svg = d3.select(dom.svg);
         state.svg = svg;
@@ -224,7 +224,7 @@
         state.nodeGroup = state.g.append("g").attr("class", "nodes-layer");
     }
 
-    // ─── Force Simulation ───
+    // Force Simulation
     function initSimulation() {
         const width = dom.svg.clientWidth;
         const height = dom.svg.clientHeight;
@@ -248,7 +248,7 @@
             .on("tick", ticked);
     }
 
-    // ─── Zoom / Pan ───
+    // Zoom / Pan
     function initZoom() {
         state.zoom = d3.zoom()
             .scaleExtent([0.1, 6])
@@ -274,7 +274,7 @@
         });
     }
 
-    // ─── Node Helpers ───
+    // Node Helpers
     function getNodeColor(node) {
         if (node.label === "OpenQuestion") return CONFIG.colors.question;
         if (node.label === "Paper") return CONFIG.colors.paper;
@@ -311,7 +311,7 @@
         return str.length > len ? str.slice(0, len) + "…" : str;
     }
 
-    // ─── Edge Helpers ───
+    // Edge Helpers
     function getEdgeColor(edge) {
         const type = (edge.type || "supports").toLowerCase();
         return CONFIG.colors[type] || CONFIG.colors.replicates;
@@ -326,7 +326,7 @@
         return CONFIG.graph.minEdgeWidth + s * (CONFIG.graph.maxEdgeWidth - CONFIG.graph.minEdgeWidth);
     }
 
-    // ─── Compute Derived Fields ───
+    // Compute Derived Fields
     function recomputeDerivedFields() {
         // Reset connection counts
         state.nodes.forEach(n => {
@@ -347,7 +347,7 @@
     }
 
     let renderTimeout = null;
-    // ─── Render Graph ───
+    // Render Graph
     function render(animate = false) {
         if (renderTimeout) clearTimeout(renderTimeout);
         renderTimeout = setTimeout(() => {
@@ -363,7 +363,7 @@
         })).filter(e => state.nodes.has(typeof e.source === 'object' ? e.source.id : e.source) &&
                          state.nodes.has(typeof e.target === 'object' ? e.target.id : e.target));
 
-        // ── Edges ──
+        // Edges
         const edgeSel = state.edgeGroup
             .selectAll(".edge-container")
             .data(edgesArr, d => d.id);
@@ -422,7 +422,7 @@
             .attr("stroke", d => getEdgeColor(d))
             .attr("stroke-width", d => edgeWidth(d));
 
-        // ── Nodes ──
+        // Nodes
         const nodeSel = state.nodeGroup
             .selectAll(".node-group")
             .data(nodesArr, d => d.id);
@@ -530,7 +530,7 @@
         state.simulation.force("link").links(edgesArr);
         state.simulation.alpha(0.3).restart();
 
-        // ── Trace Highlighting ───────────────────────────────────────
+        // Trace Highlighting
         nodeMerge.classed("trace-start",
             d => state.traceStartNodeId === d.id);
         nodeMerge.classed("trace-path-node",
@@ -538,12 +538,12 @@
         state.edgeGroup.selectAll("line.edge-line")
             .classed("trace-path-edge",
                 d => !!(state.tracePath && state.tracePath.edgeIds.has(d.id)));
-        // ─────────────────────────────────────────────────────────────
+        // 
 
         }, 50); // debounce delay
     }
 
-    // ─── Tick ───
+    // Tick
     function ticked() {
         state.edgeGroup.selectAll(".edge-line, .edge-hitbox")
             .attr("x1", d => d.source.x)
@@ -555,7 +555,7 @@
             .attr("transform", d => `translate(${d.x},${d.y})`);
     }
 
-    // ─── Drag ───
+    // Drag
     function drag(simulation) {
         return d3.drag()
             .on("start", (event, d) => {
@@ -574,7 +574,7 @@
             });
     }
 
-    // ─── Empty State / Stats ───
+    // Empty State / Stats
     function updateEmptyState() {
         if (state.nodes.size > 0) {
             dom.emptyState.classList.add("hidden");
@@ -615,11 +615,11 @@
         if (dom.statLimitations) dom.statLimitations.textContent = limitations;
     }
 
-    // ─── Field Consensus Meter ───
+    // Field Consensus Meter
     function computeConsensus(claimId) {
         // Reads state.edges to compute a weighted consensus score.
         // Returns null when no cross-paper semantic edges exist (single paper loaded).
-        // CONTAINS and RELATES_TO edges are excluded — semantic only.
+        // CONTAINS and RELATES_TO edges are excluded - semantic only.
 
         const SEMANTIC_TYPES = new Set([
             "supports", "contradicts", "extends", "replicates", "refines"
@@ -663,8 +663,8 @@
         };
     }
 
-    // ─── Detail Panel ───
-// ─── Search / Claim Verification ─────────────────────────────────────────
+    // Detail Panel
+// Search / Claim Verification
 
     function initSearch() {
         // Press "/" to open (only when focus is on body, not an input)
@@ -839,26 +839,26 @@
         `).join("");
     }
 
-// ─── Research Thread Tracer ───────────────────────────────────────────────
+// Research Thread Tracer
 
 function handleTraceClick(node) {
     if (!state.traceStartNodeId) {
-        // First node — mark as trace start
+        // First node - mark as trace start
         state.traceStartNodeId = node.id;
         state.tracePath = null;
         render(false);
         showToast(
-            `Trace start set — shift+click a second node to trace`,
+            `Trace start set - shift+click a second node to trace`,
             "info"
         );
     } else if (state.traceStartNodeId === node.id) {
-        // Clicked same node — cancel
+        // Clicked same node - cancel
         state.traceStartNodeId = null;
         state.tracePath = null;
         render(false);
         showToast("Trace cancelled", "info");
     } else {
-        // Second node — trigger trace
+        // Second node - trigger trace
         const fromId = state.traceStartNodeId;
         state.traceStartNodeId = null;
         render(false);
@@ -987,7 +987,7 @@ function openTracePanel(data) {
     dom.panelBody.innerHTML = html;
 }
 
-// ─── Literature Review Generator ─────────────────────────────────────────
+// Literature Review Generator
 
 // Stores the current review data for the download button
 let _currentReview = null;
@@ -1198,13 +1198,13 @@ async function downloadReviewDocx(review) {
                     </div>
                 `);
             }
-        // ── Field Consensus Meter ──────────────────────────────
+        // Field Consensus Meter
         const consensus = computeConsensus(node.id);
         if (consensus === null) {
             html += section("Field Consensus", `
                 <p class="panel-text consensus-empty">
                     <i class="fa-solid fa-circle-info" style="opacity:0.5"></i>
-                    No cross-paper data yet — upload more papers on the same topic.
+                    No cross-paper data yet - upload more papers on the same topic.
                 </p>
             `);
         } else {
@@ -1246,7 +1246,7 @@ async function downloadReviewDocx(review) {
                 </div>
             `);
         }
-        // ── End Field Consensus Meter ──────────────────────────
+        // End Field Consensus Meter
             if (node.source_chunk_text) {
                 html += section("Source Text", `<p class="panel-text" style="font-style:italic;opacity:0.8">"${esc(node.source_chunk_text)}"</p>`);
             }
@@ -1513,7 +1513,7 @@ async function downloadReviewDocx(review) {
         return el.innerHTML;
     }
 
-    // ─── Fetch Initial Graph ───
+    // Fetch Initial Graph
     async function fetchInitialGraph() {
         try {
             const res = await fetch(`${CONFIG.api.base}${CONFIG.api.graphEndpoint}`);
@@ -1545,7 +1545,7 @@ async function downloadReviewDocx(review) {
 
             render(false);
         } catch (err) {
-            console.warn("Could not fetch initial graph — starting empty:", err.message);
+            console.warn("Could not fetch initial graph - starting empty:", err.message);
         }
     }
 
@@ -1560,7 +1560,7 @@ async function downloadReviewDocx(review) {
         }
     }
 
-    // ─── WebSocket ───
+    // WebSocket
     function connectWebSocket() {
         if (state.ws && state.ws.readyState <= 1) return;
 
@@ -1619,7 +1619,7 @@ async function downloadReviewDocx(review) {
         dom.wsLabel.textContent = labels[status] || status;
     }
 
-    // ─── WebSocket Event Handlers ───
+    // WebSocket Event Handlers
     function handleWsEvent(msg) {
         const { type, data } = msg;
 
@@ -1770,7 +1770,7 @@ async function downloadReviewDocx(review) {
         }
     }
 
-    // ─── Upload ───
+    // Upload
     function bindUpload() {
         const dropzone = dom.uploadDropzone;
         const fileInput = dom.fileInput;
@@ -1878,7 +1878,7 @@ async function downloadReviewDocx(review) {
         dom.progressFill.style.width = "0%";
     }
 
-    // ─── Toast Notifications ───
+    // Toast Notifications
     function showToast(message, type = "info") {
         const toast = document.createElement("div");
         toast.className = `toast ${type}`;
@@ -1892,7 +1892,7 @@ async function downloadReviewDocx(review) {
         }, 4000);
     }
 
-    // ─── Window resize handler ───
+    // Window resize handler
     window.addEventListener("resize", () => {
         const width = dom.svg.clientWidth;
         const height = dom.svg.clientHeight;
@@ -1902,7 +1902,7 @@ async function downloadReviewDocx(review) {
         }
     });
 
-    // ─── Boot ───
+    // Boot
     if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", init);
     } else {

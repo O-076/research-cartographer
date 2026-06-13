@@ -30,14 +30,14 @@ def build_apa_docx(review: dict[str, Any]) -> bytes:
 
     doc = Document()
 
-    # ── Page margins: 1" all sides ──────────────────────────────────
+    # Page margins: 1" all sides
     sec = doc.sections[0]
     sec.top_margin = Inches(1)
     sec.bottom_margin = Inches(1)
     sec.left_margin = Inches(1)
     sec.right_margin = Inches(1)
 
-    # ── Default style: Times New Roman 12pt ─────────────────────────
+    # Default style: Times New Roman 12pt
     normal = doc.styles["Normal"]
     normal.font.name = "Times New Roman"
     normal.font.size = Pt(12)
@@ -62,16 +62,16 @@ def build_apa_docx(review: dict[str, Any]) -> bytes:
             run.font.name = "Times New Roman"
             run.font.size = Pt(12)
 
-    # ── Title ────────────────────────────────────────────────────────
+    # Title
     para(review.get("title", "Literature Review"),
          bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
 
-    # ── Abstract ─────────────────────────────────────────────────────
+    # Abstract
     if review.get("abstract"):
         para("Abstract", bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
         para(review["abstract"])
 
-    # ── Body sections ────────────────────────────────────────────────
+    # Body sections
     for section in review.get("sections", []):
         heading = section.get("heading", "")
         content = section.get("content", "")
@@ -80,7 +80,7 @@ def build_apa_docx(review: dict[str, Any]) -> bytes:
         # Body paragraph: 0.5" first-line indent
         para(content, first_indent=0.5)
 
-    # ── References ───────────────────────────────────────────────────
+    # References
     para("References", bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
     for ref in review.get("references", []):
         # APA hanging indent: 0.5" left, -0.5" first line
@@ -95,7 +95,7 @@ router = APIRouter(tags=["graph"])
 
 
 # ---------------------------------------------------------------------------
-# REST — full graph snapshot
+# REST - full graph snapshot
 # ---------------------------------------------------------------------------
 
 @router.get("/graph", response_model=GraphResponse)
@@ -103,7 +103,7 @@ async def get_graph(request: Request) -> GraphResponse:
     """Return the full knowledge graph for the initial frontend load.
 
     After this initial fetch the frontend relies exclusively on
-    WebSocket delta events — it should never re-fetch /graph.
+    WebSocket delta events - it should never re-fetch /graph.
     """
     graph_manager = request.app.state.graph_manager
     snapshot = await graph_manager.get_full_graph()
@@ -125,7 +125,7 @@ async def get_graph(request: Request) -> GraphResponse:
 
 
 # ---------------------------------------------------------------------------
-# REST — per-paper pipeline status
+# REST - per-paper pipeline status
 # ---------------------------------------------------------------------------
 
 @router.get("/paper/{paper_id}/status", response_model=PaperStatusResponse)
@@ -148,7 +148,7 @@ async def get_paper_status(request: Request, paper_id: str) -> PaperStatusRespon
 
 
 # ---------------------------------------------------------------------------
-# REST — edge detail
+# REST - edge detail
 # ---------------------------------------------------------------------------
 
 @router.get("/edge/{edge_id}", response_model=EdgeDetailResponse)
@@ -165,7 +165,7 @@ async def get_edge_detail(
 
 
 # ---------------------------------------------------------------------------
-# REST — consensus explanation
+# REST - consensus explanation
 # ---------------------------------------------------------------------------
 
 @router.get(
@@ -214,7 +214,7 @@ async def explain_claim_consensus(
 
 
 # ---------------------------------------------------------------------------
-# REST — claim verification
+# REST - claim verification
 # ---------------------------------------------------------------------------
 
 @router.get("/verify", response_model=VerificationResponse)
@@ -253,7 +253,7 @@ async def verify_statement(
 
 
 # ---------------------------------------------------------------------------
-# REST — research thread tracer
+# REST - research thread tracer
 # ---------------------------------------------------------------------------
 
 @router.get("/trace", response_model=TraceResponse)
@@ -292,7 +292,7 @@ async def trace_thread(
 
 
 # ---------------------------------------------------------------------------
-# REST — literature review generator
+# REST - literature review generator
 # ---------------------------------------------------------------------------
 
 @router.post("/generate/review", response_model=LiteratureReviewResponse)
@@ -339,7 +339,7 @@ async def download_review_docx(payload: ReviewDownloadRequest) -> Response:
 
 
 # ---------------------------------------------------------------------------
-# WebSocket — live graph delta stream
+# WebSocket - live graph delta stream
 # ---------------------------------------------------------------------------
 
 @router.websocket("/ws/graph")
@@ -359,7 +359,7 @@ async def ws_graph(websocket: WebSocket) -> None:
     )
 
     try:
-        # Keep the connection alive — wait for the client to close it
+        # Keep the connection alive - wait for the client to close it
         while True:
             # recv keeps the task alive; we ignore incoming data
             await websocket.receive_text()

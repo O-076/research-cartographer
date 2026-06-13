@@ -1,4 +1,4 @@
-"""Agent 3 — Gap Finder.
+"""Agent 3 - Gap Finder.
 
 Analyse the full claim graph and identify research questions that the
 corpus does not yet answer. Novelty scores are evaluated using the free
@@ -84,7 +84,7 @@ Example:
 
 
 class GapFinderAgent(BaseAgent):
-    """Agent 3 — Discover open research questions from the claim graph."""
+    """Agent 3 - Discover open research questions from the claim graph."""
 
     SYSTEM_PROMPT = _SYSTEM_PROMPT
 

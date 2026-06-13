@@ -1,4 +1,4 @@
-"""Agent 2 — Claim Comparator.
+"""Agent 2 - Claim Comparator.
 
 After a new paper is ingested, compare its claims against every existing
 claim in the graph.  Uses cosine-similarity pre-filtering to avoid
@@ -100,7 +100,7 @@ Example:
 
 
 class ComparatorAgent(BaseAgent):
-    """Agent 2 — Detect typed edges between claims from different papers."""
+    """Agent 2 - Detect typed edges between claims from different papers."""
 
     SYSTEM_PROMPT = _SYSTEM_PROMPT
 

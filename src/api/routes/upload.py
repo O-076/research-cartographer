@@ -1,4 +1,4 @@
-"""POST /upload — accept a PDF and launch the processing pipeline."""
+"""POST /upload - accept a PDF and launch the processing pipeline."""
 
 import asyncio
 import logging
@@ -24,7 +24,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)) -> UploadRe
     The cartographer pipeline runs as a fire-and-forget ``asyncio.Task``
     so the client gets an immediate response with the ``paper_id``.
     """
-    # ── Validate file type ──────────────────────────────────────────────
+    # Validate file type
     if file.content_type and file.content_type != "application/pdf":
         if not (file.filename and file.filename.lower().endswith(".pdf")):
             raise HTTPException(
@@ -32,12 +32,12 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)) -> UploadRe
                 detail="Only PDF files are accepted.",
             )
 
-    # ── Read bytes ──────────────────────────────────────────────────────
+    # Read bytes
     pdf_bytes = await file.read()
     if not pdf_bytes:
         raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
-    # ── Generate identifiers ────────────────────────────────────────────
+    # Generate identifiers
     paper_id = str(uuid.uuid4())
     filename = file.filename or "untitled.pdf"
 
@@ -46,7 +46,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)) -> UploadRe
         extra={"paper_id": paper_id, "original_filename": filename, "size": len(pdf_bytes)},
     )
 
-    # ── Create Paper node in Neo4j ──────────────────────────────────────
+    # Create Paper node in Neo4j
     graph_manager = request.app.state.graph_manager
     paper = Paper(
         id=paper_id,
@@ -56,11 +56,11 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)) -> UploadRe
     )
     await graph_manager.add_paper(paper)
 
-    # ── Emit initial status via WebSocket ───────────────────────────────
+    # Emit initial status via WebSocket
     emitter = request.app.state.emitter
     await emitter.emit_paper_status(paper_id, PipelineStatus.QUEUED.value)
 
-    # ── Launch pipeline as background task ──────────────────────────────
+    # Launch pipeline as background task
     cartographer = request.app.state.cartographer
     task = asyncio.create_task(
         _run_pipeline(
@@ -93,7 +93,7 @@ async def _run_pipeline(
     """Run the full cartographer pipeline, catching any top-level error.
 
     This function is intentionally broad in its exception handling because
-    it runs as a detached task — an unhandled exception would be silently
+    it runs as a detached task - an unhandled exception would be silently
     swallowed by the event loop.
     """
     try:

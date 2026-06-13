@@ -259,13 +259,13 @@ class GraphManager:
     async def get_path_between(
         self, from_id: str, to_id: str
     ) -> dict[str, Any] | None:
-        """Find shortest path between two nodes (up to 8 hops, any relationship type).
+        """Find shortest path between two nodes (up to 6 hops, any relationship type).
 
-        Returns None if no path exists within 8 hops or if either node is missing.
+        Returns None if no path exists within 6 hops or if either node is missing.
         """
         query = """
         MATCH (start {id: $from_id}), (end {id: $to_id})
-        MATCH path = shortestPath((start)-[*..8]-(end))
+        MATCH path = shortestPath((start)-[*..6]-(end))
         WITH path,
              [n IN nodes(path) | {
                  id: n.id,

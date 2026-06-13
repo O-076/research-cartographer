@@ -69,7 +69,7 @@ class ClaimVerifierAgent(BaseAgent):
             logger.error("Failed to embed statement", extra={"error": str(exc)})
             return empty
 
-        # 2. Cosine similarity pre-filter — reuse BaseAgent.cosine_similarity()
+        # 2. Cosine similarity pre-filter - reuse BaseAgent.cosine_similarity()
         candidates: list[tuple[dict[str, Any], float]] = []
         for claim in claims:
             emb = claim.get("embedding")

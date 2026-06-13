@@ -1,4 +1,4 @@
-"""Agent 4 — Cartographer (A2A Orchestrator).
+"""Agent 4 - Cartographer (A2A Orchestrator).
 
 Coordinates the full ingestion pipeline:
 
@@ -46,7 +46,7 @@ class CartographerAgent(BaseAgent):
         await carto.process_paper(paper_id, pdf_bytes, title="My Paper")
     """
 
-    SYSTEM_PROMPT = ""  # Not used directly — sub-agents have their own prompts
+    SYSTEM_PROMPT = ""  # Not used directly - sub-agents have their own prompts
 
     def __init__(
         self,
@@ -177,7 +177,7 @@ class CartographerAgent(BaseAgent):
         }
 
         try:
-            # ── 0. Create Paper node ──────────────────────────────
+            # 0. Create Paper node
             paper = Paper(
                 id=paper_id,
                 title=title,
@@ -190,7 +190,7 @@ class CartographerAgent(BaseAgent):
             )
             await self._set_status(paper_id, PipelineStatus.EXTRACTING)
 
-            # ── 1. Parse PDF ──────────────────────────────────────
+            # 1. Parse PDF
             logger.info("Parsing PDF", extra={"paper_id": paper_id})
             chunks = await parse_pdf(pdf_bytes, paper_id)
             logger.info(
@@ -201,7 +201,7 @@ class CartographerAgent(BaseAgent):
             if chunks:
                 await self._extract_metadata(chunks, paper_id)
 
-            # ── 2. Upload to Foundry IQ ───────────────────────────
+            # 2. Upload to Foundry IQ
             if self._uploader and chunks:
                 try:
                     upload_result = await self._uploader.upload_chunks(chunks)
@@ -218,7 +218,7 @@ class CartographerAgent(BaseAgent):
                         extra={"paper_id": paper_id, "error": str(exc)},
                     )
 
-            # ── 3. Extract claims ─────────────────────────────────
+            # 3. Extract claims
             new_claims: list[Claim] = []
             extractor = self._get_extractor()
 
@@ -283,7 +283,7 @@ class CartographerAgent(BaseAgent):
                 summary["status"] = PipelineStatus.COMPLETE.value
                 return summary
 
-            # ── 4. Compare claims ─────────────────────────────────
+            # 4. Compare claims
             await self._set_status(paper_id, PipelineStatus.COMPARING)
 
             existing_claim_dicts = await self._graph.get_claims_excluding_paper(paper_id)
@@ -319,7 +319,7 @@ class CartographerAgent(BaseAgent):
 
             await self._set_status(paper_id, PipelineStatus.EDGES_READY)
 
-            # ── 5. Find gaps ──────────────────────────────────────
+            # 5. Find gaps
             await self._set_status(paper_id, PipelineStatus.GAP_FINDING)
 
             all_claim_dicts = await self._graph.get_all_claims()
@@ -361,7 +361,7 @@ class CartographerAgent(BaseAgent):
                 extra={"paper_id": paper_id, "count": question_count},
             )
 
-            # ── 6. Done ───────────────────────────────────────────
+            # 6. Done
             await self._set_status(paper_id, PipelineStatus.COMPLETE)
             summary["status"] = PipelineStatus.COMPLETE.value
 

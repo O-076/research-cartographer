@@ -110,7 +110,7 @@ class BaseAgent:
             self._http_client = None
 
     # ------------------------------------------------------------------
-    # Azure OpenAI — Chat Completion
+    # Azure OpenAI - Chat Completion
     # ------------------------------------------------------------------
 
     @retry(
@@ -183,7 +183,7 @@ class BaseAgent:
         return content
 
     # ------------------------------------------------------------------
-    # Azure OpenAI — Embeddings
+    # Azure OpenAI - Embeddings
     # ------------------------------------------------------------------
 
     @retry(
@@ -221,7 +221,7 @@ class BaseAgent:
         return await asyncio.gather(*tasks)
 
     # ------------------------------------------------------------------
-    # Foundry IQ — Knowledge Base Query
+    # Foundry IQ - Knowledge Base Query
     # ------------------------------------------------------------------
 
     @retry(
