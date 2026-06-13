@@ -1,4 +1,4 @@
-# AGENTS.md — Instructions for AI Coding Agents
+# AGENTS.md - Instructions for AI Coding Agents
 
 > Primary seed file for Claude Code, GitHub Copilot, Codex, Cursor.
 > Read this fully before writing a single line of code.
@@ -27,7 +27,7 @@ Do not refactor working code. Do not rename files. Do not restructure the pipeli
 
 ## Track
 
-**Creative Apps** — Microsoft Agents League Hackathon 2026
+**Creative Apps** - Microsoft Agents League Hackathon 2026
 IQ layer: Foundry IQ
 
 ---
@@ -35,10 +35,10 @@ IQ layer: Foundry IQ
 ## Non-Negotiables
 
 - Knowledge base: Azure AI Foundry IQ
-- Graph DB: Neo4j — all Cypher stays in `graph_manager.py` only
+- Graph DB: Neo4j - all Cypher stays in `graph_manager.py` only
 - Backend: FastAPI
 - Frontend: D3.js v7
-- All secrets in `.env` — never hardcoded, never committed
+- All secrets in `.env` - never hardcoded, never committed
 - No Cypher outside `graph_manager.py`
 
 ---
@@ -65,7 +65,7 @@ src/
 │   ├── main.py                       # FastAPI app + lifespan
 │   └── models.py                     # all Pydantic models
 ├── frontend/
-│   ├── graph.js                      # D3.js IIFE — all client logic
+│   ├── graph.js                      # D3.js IIFE - all client logic
 │   ├── index.html
 │   └── styles.css
 └── graph/
@@ -162,7 +162,7 @@ CONFIG.colors: `.supports = "#10B981"`, `.contradicts = "#ff4444"`, `.finding = 
 
 ## Security
 
-- All credentials in `.env` — never hardcoded
+- All credentials in `.env` - never hardcoded
 - `git diff --cached` before every commit
 - No real values in `.env.example`
 - No PII in code or comments

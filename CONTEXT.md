@@ -1,4 +1,4 @@
-# CONTEXT.md — Hackathon Context
+# CONTEXT.md - Hackathon Context
 
 > AI agents: this file gives you the external constraints and requirements the project must satisfy.
 > Every technical decision in this repo exists to produce a strong submission for this event.
@@ -9,7 +9,7 @@
 
 **Agents League Hackathon @ Microsoft AI Skills Fest 2026**
 - Hosted by: Microsoft
-- Dates: June 4–14, 2026
+- Dates: June 4-14, 2026
 - Submission deadline: **June 14, 2026, 11:59 PM PT**
 - Prize pool: $55,000 USD
 - Open to everyone
@@ -22,9 +22,9 @@ Build innovative creative applications using AI-assisted development with GitHub
 
 **Three required elements:**
 
-1. **GitHub Copilot usage** — meaningful use during development, documented in the README
-2. **Microsoft IQ integration** — at least one IQ layer (we use Foundry IQ)
-3. **Creative application** — novel concept, clear user value, thoughtful UX
+1. **GitHub Copilot usage** - meaningful use during development, documented in the README
+2. **Microsoft IQ integration** - at least one IQ layer (we use Foundry IQ)
+3. **Creative application** - novel concept, clear user value, thoughtful UX
 
 There is no required scenario for this track. Application type is open.
 
@@ -32,7 +32,7 @@ There is no required scenario for this track. Application type is open.
 
 ## Our IQ Integration
 
-**Foundry IQ** — the primary knowledge layer for all agents.
+**Foundry IQ** - the primary knowledge layer for all agents.
 
 Paper chunks are indexed into a Foundry IQ knowledge base on upload. Every agent query goes through Foundry IQ to retrieve grounded context from the actual documents. This prevents hallucination and ensures all reasoning is traceable back to specific source material.
 

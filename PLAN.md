@@ -1,4 +1,4 @@
-# PLAN.md — Project Vision and Strategy
+# PLAN.md - Project Vision and Strategy
 
 ## What Research Cartographer is
 
@@ -51,11 +51,11 @@ Code quality, architecture, and feature depth only matter if the demo video comm
 1. Empty graph state
 2. Upload papers one by one, graph animates live
 3. Red edges appear between contradicting papers
-4. Click a red edge — contradiction panel opens
-5. Click a disputed claim — consensus bar, AI explanation
-6. Press `/` — verify a statement against the corpus
-7. Shift-click two nodes — trace the reasoning chain
-8. Click Generate Review — APA review appears, download .docx
+4. Click a red edge - contradiction panel opens
+5. Click a disputed claim - consensus bar, AI explanation
+6. Press `/` - verify a statement against the corpus
+7. Shift-click two nodes - trace the reasoning chain
+8. Click Generate Review - APA review appears, download .docx
 
 Every feature gets one clear moment. No dead time. The graph should be clearly visible throughout.
 

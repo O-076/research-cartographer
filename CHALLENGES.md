@@ -61,13 +61,13 @@
 
 ---
 
-## Challenge 5: A2A Protocol Setup Complexity
+## Challenge 5: Asynchronous Agent Orchestration
 
-**Problem:** Microsoft Agent Framework A2A is new (GA at Build 2026). Documentation may be sparse and examples are few.
+**Problem:** Running multiple agents sequentially per paper, without blocking the FastAPI event loop, requires careful async task management.
 
 **Resolution:**
-- We successfully integrated the Microsoft Agent Framework A2A Protocol for all agent orchestration.
-- The fallback `asyncio` task chain was completely removed in favor of proper A2A dispatching.
+- Cartographer spawns sub-agents as async methods within a detached `asyncio.Task` (`asyncio.create_task(process_paper(...))`).
+- No complex external frameworks like Microsoft Agent Framework A2A were used; vanilla `asyncio` proved more reliable and easier to trace.
 
 ---
 
