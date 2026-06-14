@@ -10,7 +10,7 @@ Built for the **Microsoft Agents League Hackathon 2026**, Creative Apps track.
 
 ## Demo
 
-> *[Demo video - add link before submission]*
+[![Research Cartographer Demo](https://img.youtube.com/vi/wnj3TmWvWkQ/maxresdefault.jpg)](https://youtu.be/wnj3TmWvWkQ)
 
 ---
 
